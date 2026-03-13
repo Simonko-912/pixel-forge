@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixel·Forge — Dataset Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#080c10; --panel:#0d1117; --card:#111820; --border:#1e2d3d;
+  --accent:#00f0ff; --accent2:#ff2d78; --accent3:#ffe000; --accent4:#a259ff;
+  --text:#c9d8e8; --muted:#4a6070; --success:#00ff88;
+  --font:'Share Tech Mono',monospace; --display:'Orbitron',monospace;
+}
+html,body { background:var(--bg); color:var(--text); font-family:var(--font); font-size:13px; height:100%; overflow:hidden; }
+body::before { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.07) 2px,rgba(0,0,0,.07) 4px); pointer-events:none; z-index:9999; }
+
+header { padding:11px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:14px; background:linear-gradient(90deg,#080c10,#0a1420); flex-shrink:0; }
+header h1 { font-family:var(--display); font-size:1.15rem; letter-spacing:.12em; background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+header span { color:var(--muted); font-size:.78rem; }
+.app { display:flex; height:calc(100vh - 44px); overflow:hidden; }
+
+.left-panel  { width:215px; flex-shrink:0; display:flex; flex-direction:column; border-right:1px solid var(--border); overflow-y:auto; background:var(--panel); }
+.right-panel { width:255px; flex-shrink:0; display:flex; flex-direction:column; border-left:1px solid var(--border);  overflow-y:auto; background:var(--panel); }
+
+.canvas-area { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:16px; background:radial-gradient(ellipse at center,#0d1520 0%,var(--bg) 70%); overflow:hidden; }
+#canvas { image-rendering:pixelated; cursor:crosshair; border:2px solid var(--accent); box-shadow:0 0 22px rgba(0,240,255,.16),0 0 55px rgba(0,240,255,.05); display:block; }
+#canvas.tool-erase { cursor:cell; }
+#canvas.tool-fill  { cursor:copy; }
+#canvas.tool-pick  { cursor:crosshair; }
+.cbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:center; }
+.cbar span { font-size:.7rem; color:var(--muted); }
+.cbar b    { font-size:.7rem; color:var(--accent); min-width:66px; }
+
+.section { border-bottom:1px solid var(--border); padding:11px 13px; }
+.stitle { font-family:var(--display); font-size:.57rem; letter-spacing:.2em; color:var(--accent); text-transform:uppercase; margin-bottom:9px; }
+
+button { font-family:var(--font); font-size:.76rem; border:1px solid var(--border); background:var(--card); color:var(--text); padding:5px 9px; cursor:pointer; border-radius:3px; transition:all .12s; white-space:nowrap; }
+button:hover { border-color:var(--accent); color:var(--accent); }
+button.active  { background:var(--accent);  color:#000; border-color:var(--accent);  font-weight:700; }
+button.active2 { background:var(--accent4); color:#fff; border-color:var(--accent4); font-weight:700; }
+button.danger  { border-color:var(--accent2); color:var(--accent2); }
+button.danger:hover { background:var(--accent2); color:#fff; }
+button.ok { border-color:var(--success); color:var(--success); }
+button.ok:hover { background:var(--success); color:#000; }
+.brow { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:6px; }
+
+input[type=number], input[type=text], select, textarea {
+  font-family:var(--font); font-size:.76rem; background:var(--card); border:1px solid var(--border); color:var(--text); padding:4px 7px; border-radius:3px; width:100%;
+}
+input:focus, select:focus, textarea:focus { outline:none; border-color:var(--accent); }
+textarea { resize:vertical; min-height:46px; }
+select option { background:var(--card); }
+.lbl { font-size:.7rem; color:var(--muted); display:block; margin-bottom:2px; margin-top:5px; }
+
+#colorSwatch { width:100%; height:26px; border-radius:3px; border:1px solid var(--border); margin-bottom:7px; }
+.crow { display:flex; align-items:center; gap:7px; margin-bottom:7px; }
+#colorPickerNative { width:38px; height:38px; border:2px solid var(--border); border-radius:4px; cursor:pointer; padding:0; background:none; flex-shrink:0; }
+#colorPickerNative:hover { border-color:var(--accent); }
+.rgba-sl { display:flex; flex-direction:column; gap:3px; flex:1; }
+.sl-row { display:flex; align-items:center; gap:4px; }
+.sl-row em { width:11px; font-style:normal; font-size:.7rem; color:var(--muted); }
+.sl-row input[type=range] { flex:1; height:3px; cursor:pointer; }
+.sl-row span { width:24px; text-align:right; font-size:.7rem; }
+
+.pal-grid { display:grid; grid-template-columns:repeat(8,1fr); gap:3px; margin-top:4px; }
+.pal-sw { width:100%; aspect-ratio:1; border-radius:2px; border:2px solid transparent; cursor:pointer; transition:transform .1s,border-color .1s; }
+.pal-sw:hover { transform:scale(1.25); border-color:var(--accent); }
+.pal-sw.sel { border-color:#fff; transform:scale(1.15); }
+
+.bs-wrap { display:flex; gap:3px; flex-wrap:wrap; margin-bottom:5px; }
+.bs-btn { width:26px; height:26px; padding:0; display:flex; align-items:center; justify-content:center; font-size:.68rem; }
+.bs-btn.active { background:var(--accent2); color:#fff; border-color:var(--accent2); }
+.bprev-wrap { display:flex; align-items:center; justify-content:center; height:30px; margin-bottom:3px; }
+#brushPreview { image-rendering:pixelated; border:1px solid var(--border); background:#fff; }
+
+.bsh-wrap { display:flex; gap:3px; flex-wrap:wrap; margin-bottom:7px; }
+.bsh-btn { padding:4px 7px; font-size:.7rem; }
+
+#dsGrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(42px,1fr)); gap:3px; max-height:155px; overflow-y:auto; margin-top:5px; }
+.dst { position:relative; border:1px solid var(--border); border-radius:2px; overflow:hidden; cursor:pointer; }
+.dst img { width:100%; display:block; image-rendering:pixelated; aspect-ratio:1; object-fit:contain; background:#111; }
+.dst .dl { position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,.75); font-size:.48rem; padding:1px 2px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dst:hover { border-color:var(--accent2); }
+.dst .drm { position:absolute; top:1px; right:1px; width:12px; height:12px; font-size:8px; padding:0; display:none; align-items:center; justify-content:center; background:var(--accent2); color:#fff; border:none; border-radius:1px; }
+.dst:hover .drm { display:flex; }
+
+#statusBar { padding:4px 16px; font-size:.7rem; color:var(--accent3); border-top:1px solid var(--border); background:var(--panel); flex-shrink:0; min-height:24px; }
+
+.modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:1000; align-items:center; justify-content:center; }
+.modal-bg.open { display:flex; }
+.modal { background:var(--panel); border:1px solid var(--accent4); border-radius:6px; padding:18px; width:400px; max-width:95vw; max-height:90vh; overflow-y:auto; position:relative; }
+.modal h2 { font-family:var(--display); font-size:.85rem; color:var(--accent4); margin-bottom:12px; }
+.modal pre { font-size:.65rem; color:var(--accent3); background:var(--card); padding:9px; border-radius:3px; border:1px solid var(--border); white-space:pre-wrap; line-height:1.55; }
+.mcl { position:absolute; top:10px; right:12px; background:none; border:none; color:var(--muted); font-size:1.1rem; cursor:pointer; padding:2px 6px; }
+.mcl:hover { color:var(--accent2); }
+#brushEditorCanvas { image-rendering:pixelated; cursor:crosshair; border:1px solid var(--accent4); background:#111; display:block; margin:0 auto 8px; }
+.bed-ctrl { display:flex; gap:4px; justify-content:center; flex-wrap:wrap; margin-bottom:8px; }
+
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:var(--bg); }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>PIXEL·FORGE</h1>
+  <span>dataset builder</span>
+  <span style="margin-left:auto;color:var(--accent4);font-size:.75rem" id="hdrCount">0 images</span>
+</header>
+
+<div class="app">
+
+<!-- ═══════════ LEFT ═══════════ -->
+<div class="left-panel">
+
+  <div class="section">
+    <div class="stitle">Canvas</div>
+    <div style="display:flex;gap:4px;align-items:center;margin-bottom:6px">
+      <input type="number" id="canvasW" value="32" min="1" max="512" style="width:46px">
+      <span style="color:var(--muted)">×</span>
+      <input type="number" id="canvasH" value="32" min="1" max="512" style="width:46px">
+      <button onclick="applySize()">Set</button>
+    </div>
+    <div class="brow">
+      <button onclick="clearCanvas()">Clear</button>
+      <button onclick="fillCanvas()">Fill</button>
+      <button onclick="flipH()" title="Flip horizontal">↔</button>
+      <button onclick="flipV()" title="Flip vertical">↕</button>
+    </div>
+    <label class="lbl">Zoom</label>
+    <div style="display:flex;align-items:center;gap:5px">
+      <input type="range" id="zoomSl" min="2" max="16" value="10" oninput="applyZoom()" style="flex:1;accent-color:var(--accent3)">
+      <span id="zoomLbl" style="color:var(--accent3);font-size:.7rem;min-width:26px">10×</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="stitle">Tools</div>
+    <div class="brow" style="margin-bottom:4px">
+      <button id="toolDraw"  class="active" onclick="setTool('draw')"  title="Draw">✏️ Draw</button>
+      <button id="toolErase" onclick="setTool('erase')" title="Erase">⬜ Erase</button>
+    </div>
+    <div class="brow">
+      <button id="toolFill"  onclick="setTool('fill')"  title="Flood fill">🪣 Fill</button>
+      <button id="toolPick"  onclick="setTool('pick')"  title="Eyedropper">💉 Pick</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="stitle">Brush Size</div>
+    <div class="bs-wrap" id="bsWrap"></div>
+    <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px">
+      <span style="font-size:.7rem;color:var(--muted)">1–32:</span>
+      <input type="range" id="bsCustSl" min="1" max="32" value="1" oninput="setBrushSize(+this.value)" style="flex:1;accent-color:var(--accent2)">
+      <span id="bsLbl" style="color:var(--accent2);font-size:.7rem;min-width:22px">1</span>
+    </div>
+    <div class="bprev-wrap"><canvas id="brushPreview" width="32" height="32" style="width:60px;height:60px"></canvas></div>
+  </div>
+
+  <div class="section">
+    <div class="stitle">Brush Shape</div>
+    <div class="bsh-wrap">
+      <button class="bsh-btn active" id="bshSquare"  onclick="selectBuiltinBrush('square')">■ Sq</button>
+      <button class="bsh-btn"        id="bshCircle"  onclick="selectBuiltinBrush('circle')">● Ci</button>
+      <button class="bsh-btn"        id="bshDiamond" onclick="selectBuiltinBrush('diamond')">◆ Di</button>
+      <button class="bsh-btn"        id="bshCross"   onclick="selectBuiltinBrush('cross')">✚ Cr</button>
+      <button class="bsh-btn active2" id="bshCustom"  onclick="openBrushEditor()" style="display:none">★ Custom</button>
+    </div>
+    <button style="width:100%;font-size:.7rem" onclick="openBrushEditor()">🖊 Edit Custom Brush…</button>
+  </div>
+
+  <div class="section">
+    <div class="stitle">Color</div>
+    <div id="colorSwatch"></div>
+    <div class="crow">
+      <input type="color" id="colorPickerNative" value="#ff0000" oninput="onNativePick(this.value)">
+      <div class="rgba-sl">
+        <div class="sl-row"><em style="color:#ff7777">R</em><input type="range" id="slR" min="0" max="255" value="255" oninput="onSlider()" style="accent-color:#ff7777"><span id="vR">255</span></div>
+        <div class="sl-row"><em style="color:#77ff99">G</em><input type="range" id="slG" min="0" max="255" value="0"   oninput="onSlider()" style="accent-color:#77ff99"><span id="vG">0</span></div>
+        <div class="sl-row"><em style="color:#77aaff">B</em><input type="range" id="slB" min="0" max="255" value="0"   oninput="onSlider()" style="accent-color:#77aaff"><span id="vB">0</span></div>
+        <div class="sl-row"><em style="color:var(--muted)">A</em><input type="range" id="slA" min="0" max="255" value="255" oninput="onSlider()" style="accent-color:#aaa"><span id="vA">255</span></div>
+      </div>
+    </div>
+    <div class="pal-grid" id="palGrid"></div>
+  </div>
+
+</div>
+
+<!-- ═══════════ CANVAS ═══════════ -->
+<div class="canvas-area">
+  <canvas id="canvas"></canvas>
+  <div class="cbar">
+    <span>pos</span><b id="posLbl">—</b>
+    <span>canvas</span><b id="sizeLbl">32×32</b>
+  </div>
+</div>
+
+<!-- ═══════════ RIGHT ═══════════ -->
+<div class="right-panel">
+
+  <div class="section">
+    <div class="stitle">Add to Dataset</div>
+    <label class="lbl">Label / class *</label>
+    <input type="text" id="dsLabel" placeholder="cat, spaceship, tree…">
+    <label class="lbl">Description</label>
+    <textarea id="dsDesc" rows="2" placeholder="A red pixel-art cat…"></textarea>
+    <label class="lbl">Tags (comma-separated)</label>
+    <input type="text" id="dsTags" placeholder="red, animal, cute">
+    <label class="lbl">Split</label>
+    <select id="dsSplit">
+      <option value="train">train</option>
+      <option value="validation">validation</option>
+      <option value="test">test</option>
+    </select>
+    <label class="lbl">Style</label>
+    <select id="dsStyle">
+      <option value="">— unset —</option>
+      <option>pixel-art</option><option>icon</option><option>sprite</option>
+      <option>tile</option><option>portrait</option><option>landscape</option>
+      <option>abstract</option><option>other</option>
+    </select>
+    <label class="lbl">Source / author</label>
+    <input type="text" id="dsSource" placeholder="optional">
+    <div style="display:flex;gap:4px;margin-top:8px">
+      <button class="ok" style="flex:1" onclick="addToDataset()">➕ Add</button>
+      <button onclick="addAndClear()" title="Add then clear canvas" style="font-size:.7rem">Add+Clear</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="stitle">Dataset &nbsp;<span id="dsCountLbl" style="color:var(--accent3)">0</span></div>
+    <div id="dsGrid"></div>
+    <div style="display:flex;gap:4px;margin-top:7px;flex-wrap:wrap">
+      <button onclick="clearDataset()" class="danger" style="font-size:.68rem">🗑 Clear All</button>
+      <button onclick="exportCurrentPNG()" style="font-size:.68rem">🖼 Save PNG</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="stitle">Export</div>
+    <button class="ok" style="width:100%;margin-bottom:5px" onclick="exportDataset()">⬇️ Download Dataset ZIP</button>
+    <div style="font-size:.65rem;color:var(--muted);line-height:1.6;margin-bottom:6px">
+      Fields in metadata.jsonl:<br>
+      <code style="color:var(--accent2)">label, description, tags, split, source, style, width, height</code>
+    </div>
+    <pre style="font-size:.62rem;color:var(--accent3);background:var(--card);padding:6px;border-radius:3px;border:1px solid var(--border);white-space:pre-wrap">from datasets import load_dataset
+ds = load_dataset("imagefolder", data_dir=".")</pre>
+  </div>
+
+  <div class="section">
+    <div class="stitle">HuggingFace Upload</div>
+    <label class="lbl">Repo (username/name)</label>
+    <input type="text" id="hfRepo" placeholder="you/my-pixel-dataset" style="margin-bottom:6px">
+    <button style="width:100%" onclick="showHFModal()">📋 Generate Upload Code</button>
+  </div>
+
+</div>
+</div><!-- .app -->
+
+<div id="statusBar">ready — click canvas to draw!</div>
+
+<!-- Brush Editor Modal -->
+<div class="modal-bg" id="brushModal">
+  <div class="modal">
+    <button class="mcl" onclick="closeBrushEditor()">✕</button>
+    <h2>✏ Custom Brush Editor</h2>
+    <p style="font-size:.7rem;color:var(--muted);margin-bottom:10px">Click / drag to toggle pixels. The mask scales with brush size.</p>
+    <canvas id="brushEditorCanvas"></canvas>
+    <div class="bed-ctrl">
+      <button onclick="bedFill()">Fill</button>
+      <button onclick="bedClear()">Clear</button>
+      <button onclick="bedCircle()">Circle</button>
+      <button onclick="bedDiamond()">Diamond</button>
+      <button onclick="bedCross()">Cross</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <span class="lbl" style="margin:0;white-space:nowrap">Grid size:</span>
+      <select id="bedSize" onchange="initBrushEditor()" style="width:70px">
+        <option value="3">3×3</option>
+        <option value="5" selected>5×5</option>
+        <option value="7">7×7</option>
+        <option value="9">9×9</option>
+        <option value="11">11×11</option>
+        <option value="13">13×13</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:7px;justify-content:flex-end">
+      <button onclick="closeBrushEditor()">Cancel</button>
+      <button class="ok" onclick="applyCustomBrush()">✓ Use This Brush</button>
+    </div>
+  </div>
+</div>
+
+<!-- HF Modal -->
+<div class="modal-bg" id="hfModal">
+  <div class="modal">
+    <button class="mcl" onclick="document.getElementById('hfModal').classList.remove('open')">✕</button>
+    <h2>🤗 HuggingFace Upload</h2>
+    <pre id="hfPre"></pre>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+// ════ State ════
+let canvasW=32,canvasH=32,zoom=10;
+let color={r:255,g:0,b:0,a:255};
+let tool='draw', isPainting=false;
+let brushSize=1, brushType='square';
+let customBrushMask=null, customBrushN=5;
+let dataset=[];
+
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+
+function status(msg){
+  document.getElementById('statusBar').textContent = msg;
+}
+
+// ════ Canvas ════
+function initCanvas(w,h,preserve){
+  const snap=preserve?ctx.getImageData(0,0,canvas.width,canvas.height):null;
+  canvasW=w; canvasH=h; canvas.width=w; canvas.height=h;
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,w,h);
+  if(snap) ctx.putImageData(snap,0,0);
+  document.getElementById('sizeLbl').textContent=w+'×'+h;
+  applyZoom();
+}
+function applyZoom(){
+  zoom=+document.getElementById('zoomSl').value;
+  document.getElementById('zoomLbl').textContent=zoom+'×';
+  const area=canvas.parentElement;
+  const maxW=area.clientWidth-40, maxH=area.clientHeight-55;
+  let dw=canvasW*zoom, dh=canvasH*zoom;
+  if(dw>maxW||dh>maxH){ const s=Math.min(maxW/dw,maxH/dh); dw=Math.round(dw*s); dh=Math.round(dh*s); }
+  canvas.style.width=dw+'px'; canvas.style.height=dh+'px';
+}
+function applySize(){
+  const w=Math.max(1,Math.min(512,+document.getElementById('canvasW').value||32));
+  const h=Math.max(1,Math.min(512,+document.getElementById('canvasH').value||32));
+  document.getElementById('canvasW').value=w;
+  document.getElementById('canvasH').value=h;
+  initCanvas(w,h,false);
+  status('Canvas '+w+'×'+h);
+}
+function clearCanvas(){ ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,canvasW,canvasH); }
+function fillCanvas(){ ctx.fillStyle=`rgba(${color.r},${color.g},${color.b},${color.a/255})`; ctx.fillRect(0,0,canvasW,canvasH); }
+function flipH(){
+  const t=document.createElement('canvas'); t.width=canvasW; t.height=canvasH;
+  const tc=t.getContext('2d'); tc.translate(canvasW,0); tc.scale(-1,1); tc.drawImage(canvas,0,0);
+  ctx.clearRect(0,0,canvasW,canvasH); ctx.drawImage(t,0,0);
+}
+function flipV(){
+  const t=document.createElement('canvas'); t.width=canvasW; t.height=canvasH;
+  const tc=t.getContext('2d'); tc.translate(0,canvasH); tc.scale(1,-1); tc.drawImage(canvas,0,0);
+  ctx.clearRect(0,0,canvasW,canvasH); ctx.drawImage(t,0,0);
+}
+window.addEventListener('resize',applyZoom);
+
+// ════ Coords ════
+function getXY(e){
+  const r=canvas.getBoundingClientRect();
+  return {
+    x:Math.max(0,Math.min(canvasW-1,Math.floor((e.clientX-r.left)/r.width*canvasW))),
+    y:Math.max(0,Math.min(canvasH-1,Math.floor((e.clientY-r.top)/r.height*canvasH)))
+  };
+}
+
+// ════ Brush offsets ════
+function getBrushOffsets(sz){
+  const h=Math.floor(sz/2), offs=[];
+  if(brushType==='square'){
+    for(let dy=-h;dy<=h;dy++) for(let dx=-h;dx<=h;dx++) offs.push([dx,dy]);
+  } else if(brushType==='circle'){
+    const r=h+.5;
+    for(let dy=-h;dy<=h;dy++) for(let dx=-h;dx<=h;dx++)
+      if(dx*dx+dy*dy<=r*r) offs.push([dx,dy]);
+  } else if(brushType==='diamond'){
+    for(let dy=-h;dy<=h;dy++) for(let dx=-h;dx<=h;dx++)
+      if(Math.abs(dx)+Math.abs(dy)<=h) offs.push([dx,dy]);
+  } else if(brushType==='cross'){
+    for(let d=-h;d<=h;d++){ offs.push([d,0]); if(d) offs.push([0,d]); }
+  } else if(brushType==='custom'&&customBrushMask){
+    const n=customBrushMask.length, ch=Math.floor(n/2);
+    for(let row=0;row<n;row++) for(let col=0;col<n;col++)
+      if(customBrushMask[row][col]) offs.push([col-ch,row-ch]);
+  }
+  return offs;
+}
+
+// ════ Paint ════
+function paintAt(x,y){
+  if(tool==='draw'){
+    ctx.fillStyle=`rgba(${color.r},${color.g},${color.b},${color.a/255})`;
+    for(const[dx,dy]of getBrushOffsets(brushSize)){
+      const px=x+dx,py=y+dy;
+      if(px>=0&&px<canvasW&&py>=0&&py<canvasH) ctx.fillRect(px,py,1,1);
+    }
+  } else if(tool==='erase'){
+    ctx.fillStyle='#ffffff';
+    for(const[dx,dy]of getBrushOffsets(brushSize)){
+      const px=x+dx,py=y+dy;
+      if(px>=0&&px<canvasW&&py>=0&&py<canvasH) ctx.fillRect(px,py,1,1);
+    }
+  } else if(tool==='fill'){
+    floodFill(x,y);
+  } else if(tool==='pick'){
+    const d=ctx.getImageData(x,y,1,1).data;
+    color={r:d[0],g:d[1],b:d[2],a:d[3]};
+    updateSwatch(); setTool('draw');
+    status(`Picked rgb(${d[0]},${d[1]},${d[2]})`);
+  }
+}
+
+canvas.addEventListener('mousedown',e=>{ if(e.button!==0)return; isPainting=true; const{x,y}=getXY(e); paintAt(x,y); showPos(x,y); });
+canvas.addEventListener('mousemove',e=>{ const{x,y}=getXY(e); showPos(x,y); if(isPainting&&tool!=='fill'&&tool!=='pick') paintAt(x,y); });
+canvas.addEventListener('mouseup',  ()=>isPainting=false);
+canvas.addEventListener('mouseleave',()=>isPainting=false);
+canvas.addEventListener('touchstart',e=>{ e.preventDefault(); isPainting=true; const{x,y}=getXY(e.touches[0]); paintAt(x,y); },{passive:false});
+canvas.addEventListener('touchmove', e=>{ e.preventDefault(); if(!isPainting||tool==='fill'||tool==='pick')return; const{x,y}=getXY(e.touches[0]); paintAt(x,y); },{passive:false});
+canvas.addEventListener('touchend', ()=>isPainting=false);
+document.addEventListener('mouseup',()=>{ isPainting=false; bedPainting=false; });
+
+function showPos(x,y){ document.getElementById('posLbl').textContent=x+', '+y; }
+
+// ════ Flood fill ════
+function floodFill(sx,sy){
+  const id=ctx.getImageData(0,0,canvasW,canvasH),d=id.data;
+  const i0=(sy*canvasW+sx)*4;
+  const tr=d[i0],tg=d[i0+1],tb=d[i0+2],ta=d[i0+3];
+  const fr=color.r,fg=color.g,fb=color.b,fa=color.a;
+  if(tr===fr&&tg===fg&&tb===fb&&ta===fa)return;
+  const vis=new Uint8Array(canvasW*canvasH),stk=[[sx,sy]];
+  while(stk.length){
+    const[x,y]=stk.pop();
+    if(x<0||x>=canvasW||y<0||y>=canvasH)continue;
+    const vi=y*canvasW+x; if(vis[vi])continue;
+    const i=vi*4;
+    if(d[i]!==tr||d[i+1]!==tg||d[i+2]!==tb||d[i+3]!==ta)continue;
+    vis[vi]=1; d[i]=fr;d[i+1]=fg;d[i+2]=fb;d[i+3]=fa;
+    stk.push([x+1,y],[x-1,y],[x,y+1],[x,y-1]);
+  }
+  ctx.putImageData(id,0,0);
+}
+
+// ════ Tools ════
+function setTool(t){
+  tool=t;
+  ['Draw','Erase','Fill','Pick'].forEach(n=>document.getElementById('tool'+n)?.classList.remove('active'));
+  document.getElementById('tool'+t.charAt(0).toUpperCase()+t.slice(1))?.classList.add('active');
+  canvas.className='tool-'+t;
+}
+
+// ════ Brush size buttons ════
+const PRESET_SIZES=[1,2,3,4,6,8,12,16,24,32];
+(function(){
+  const w=document.getElementById('bsWrap');
+  PRESET_SIZES.forEach(s=>{
+    const b=document.createElement('button');
+    b.className='bs-btn'+(s===1?' active':'');
+    b.textContent=s; b.dataset.sz=s;
+    b.onclick=()=>setBrushSize(s);
+    w.appendChild(b);
+  });
+})();
+function setBrushSize(s){
+  brushSize=s;
+  document.getElementById('bsCustSl').value=s;
+  document.getElementById('bsLbl').textContent=s;
+  document.querySelectorAll('.bs-btn').forEach(b=>b.classList.toggle('active',+b.dataset.sz===s));
+  drawBrushPreview();
+}
+function drawBrushPreview(){
+  const pc=document.getElementById('brushPreview');
+  const pctx=pc.getContext('2d');
+  pctx.clearRect(0,0,32,32);
+  pctx.fillStyle='#ffffff'; pctx.fillRect(0,0,32,32);
+  const offs=getBrushOffsets(Math.min(brushSize,14));
+  const cx=16,cy=16,sc=brushSize>14?.5:1;
+  pctx.fillStyle=`rgba(${color.r},${color.g},${color.b},${color.a/255})`;
+  for(const[dx,dy]of offs)
+    pctx.fillRect(Math.round(cx+dx*sc),Math.round(cy+dy*sc),Math.max(1,Math.round(sc)),Math.max(1,Math.round(sc)));
+}
+
+// ════ Brush shape ════
+function selectBuiltinBrush(type){
+  brushType=type;
+  ['Square','Circle','Diamond','Cross'].forEach(n=>document.getElementById('bsh'+n)?.classList.remove('active'));
+  document.getElementById('bsh'+type.charAt(0).toUpperCase()+type.slice(1))?.classList.add('active');
+  document.getElementById('bshCustom').style.display='none';
+  drawBrushPreview();
+}
+
+// ════ Brush Editor ════
+let bedCanvas,bedCtx,bedN=5,bedPainting=false,bedDraw=true;
+
+function initBrushEditor(){
+  bedN=+document.getElementById('bedSize').value;
+  bedCanvas=document.getElementById('brushEditorCanvas');
+  const CELL=22;
+  bedCanvas.width=bedN; bedCanvas.height=bedN;
+  bedCanvas.style.width=(bedN*CELL)+'px'; bedCanvas.style.height=(bedN*CELL)+'px';
+  bedCtx=bedCanvas.getContext('2d');
+  if(!customBrushMask||customBrushMask.length!==bedN){
+    customBrushMask=Array.from({length:bedN},()=>new Array(bedN).fill(false));
+    bedCircle();
+  }
+  drawBed();
+}
+function drawBed(){
+  for(let r=0;r<bedN;r++) for(let c=0;c<bedN;c++){
+    bedCtx.fillStyle=customBrushMask[r][c]?'#00f0ff':'#1a1a2e';
+    bedCtx.fillRect(c,r,1,1);
+  }
+}
+function bedRC(e){
+  const rect=bedCanvas.getBoundingClientRect();
+  return {
+    c:Math.max(0,Math.min(bedN-1,Math.floor((e.clientX-rect.left)/rect.width*bedN))),
+    r:Math.max(0,Math.min(bedN-1,Math.floor((e.clientY-rect.top)/rect.height*bedN)))
+  };
+}
+function openBrushEditor(){ document.getElementById('brushModal').classList.add('open'); initBrushEditor(); }
+function closeBrushEditor(){ document.getElementById('brushModal').classList.remove('open'); }
+function applyCustomBrush(){
+  customBrushN=bedN; brushType='custom';
+  ['Square','Circle','Diamond','Cross'].forEach(n=>document.getElementById('bsh'+n)?.classList.remove('active'));
+  const bc=document.getElementById('bshCustom'); bc.style.display=''; bc.classList.add('active2');
+  drawBrushPreview(); closeBrushEditor(); status('Custom brush applied!');
+}
+
+document.getElementById('brushEditorCanvas').addEventListener('mousedown',e=>{
+  bedPainting=true; const{r,c}=bedRC(e);
+  bedDraw=!customBrushMask[r][c]; customBrushMask[r][c]=bedDraw; drawBed();
+});
+document.getElementById('brushEditorCanvas').addEventListener('mousemove',e=>{
+  if(!bedPainting)return; const{r,c}=bedRC(e); customBrushMask[r][c]=bedDraw; drawBed();
+});
+
+function bedFill(){ for(let r=0;r<bedN;r++) for(let c=0;c<bedN;c++) customBrushMask[r][c]=true; drawBed(); }
+function bedClear(){ for(let r=0;r<bedN;r++) for(let c=0;c<bedN;c++) customBrushMask[r][c]=false; drawBed(); }
+function bedCircle(){
+  const h=(bedN-1)/2,r=h+.4;
+  for(let rr=0;rr<bedN;rr++) for(let c=0;c<bedN;c++) customBrushMask[rr][c]=(rr-h)**2+(c-h)**2<=r*r;
+  drawBed();
+}
+function bedDiamond(){
+  const h=Math.floor(bedN/2);
+  for(let rr=0;rr<bedN;rr++) for(let c=0;c<bedN;c++) customBrushMask[rr][c]=Math.abs(rr-h)+Math.abs(c-h)<=h;
+  drawBed();
+}
+function bedCross(){
+  const h=Math.floor(bedN/2);
+  for(let rr=0;rr<bedN;rr++) for(let c=0;c<bedN;c++) customBrushMask[rr][c]=(rr===h||c===h);
+  drawBed();
+}
+
+// ════ Color ════
+function updateSwatch(){
+  document.getElementById('colorSwatch').style.background=`rgba(${color.r},${color.g},${color.b},${color.a/255})`;
+  document.getElementById('colorPickerNative').value=toHex(color.r,color.g,color.b);
+  document.getElementById('slR').value=color.r; document.getElementById('vR').textContent=color.r;
+  document.getElementById('slG').value=color.g; document.getElementById('vG').textContent=color.g;
+  document.getElementById('slB').value=color.b; document.getElementById('vB').textContent=color.b;
+  document.getElementById('slA').value=color.a; document.getElementById('vA').textContent=color.a;
+  drawBrushPreview();
+}
+function onSlider(){
+  color.r=+document.getElementById('slR').value; document.getElementById('vR').textContent=color.r;
+  color.g=+document.getElementById('slG').value; document.getElementById('vG').textContent=color.g;
+  color.b=+document.getElementById('slB').value; document.getElementById('vB').textContent=color.b;
+  color.a=+document.getElementById('slA').value; document.getElementById('vA').textContent=color.a;
+  document.getElementById('colorSwatch').style.background=`rgba(${color.r},${color.g},${color.b},${color.a/255})`;
+  document.getElementById('colorPickerNative').value=toHex(color.r,color.g,color.b);
+  drawBrushPreview();
+}
+function onNativePick(hex){
+  color.r=parseInt(hex.slice(1,3),16);
+  color.g=parseInt(hex.slice(3,5),16);
+  color.b=parseInt(hex.slice(5,7),16);
+  updateSwatch();
+}
+function toHex(r,g,b){ return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join(''); }
+
+// ════ Palette ════
+const PAL=[
+  [255,0,0],[255,80,0],[255,180,0],[255,230,0],
+  [150,255,0],[0,200,60],[0,180,160],[0,120,255],
+  [0,60,200],[80,0,220],[160,0,255],[255,0,180],
+  [255,150,180],[255,200,150],[200,160,100],[120,70,30],
+  [255,255,255],[220,220,220],[160,160,160],[100,100,100],
+  [60,60,60],[30,30,30],[0,0,0],[0,0,0,0],
+].map(c=>c.length===4?[...c]:[...c,255]);
+
+(function(){
+  const g=document.getElementById('palGrid');
+  PAL.forEach(([r,gb,b,a])=>{
+    const s=document.createElement('div'); s.className='pal-sw';
+    s.style.background=a===0?'repeating-linear-gradient(45deg,#999,#999 2px,#fff 2px,#fff 4px)':`rgba(${r},${gb},${b},${a/255})`;
+    s.title=`rgba(${r},${gb},${b},${a})`;
+    s.onclick=()=>{ color={r,g:gb,b,a}; updateSwatch(); document.querySelectorAll('.pal-sw').forEach(x=>x.classList.remove('sel')); s.classList.add('sel'); };
+    g.appendChild(s);
+  });
+})();
+
+// ════ Dataset ════
+function getMeta(){
+  return {
+    label:  document.getElementById('dsLabel').value.trim(),
+    desc:   document.getElementById('dsDesc').value.trim(),
+    tags:   document.getElementById('dsTags').value.trim().split(',').map(t=>t.trim()).filter(Boolean),
+    split:  document.getElementById('dsSplit').value,
+    style:  document.getElementById('dsStyle').value,
+    source: document.getElementById('dsSource').value.trim(),
+  };
+}
+function addToDataset(){
+  const m=getMeta();
+  if(!m.label){ status('⚠ Enter a label!'); return; }
+  dataset.push({dataURL:canvas.toDataURL('image/png'),w:canvasW,h:canvasH,...m});
+  renderDataset();
+  status(`✓ #${dataset.length}: "${m.label}" [${m.split}]`);
+}
+function addAndClear(){ addToDataset(); clearCanvas(); }
+function removeFromDataset(i){ dataset.splice(i,1); renderDataset(); status(`Removed. ${dataset.length} remaining.`); }
+function clearDataset(){ if(!confirm('Clear entire dataset?'))return; dataset=[]; renderDataset(); status('Dataset cleared.'); }
+
+function renderDataset(){
+  const g=document.getElementById('dsGrid'); g.innerHTML='';
+  dataset.forEach(({dataURL,label},i)=>{
+    const d=document.createElement('div'); d.className='dst'; d.title=label;
+    const img=document.createElement('img'); img.src=dataURL;
+    const lbl=document.createElement('div'); lbl.className='dl'; lbl.textContent=label;
+    const rm=document.createElement('button'); rm.className='drm'; rm.textContent='✕';
+    rm.onclick=e=>{ e.stopPropagation(); removeFromDataset(i); };
+    d.append(img,lbl,rm);
+    d.addEventListener('click',()=>{
+      const im=new Image(); im.onload=()=>{ initCanvas(dataset[i].w,dataset[i].h,false); ctx.drawImage(im,0,0); status(`Loaded "${dataset[i].label}"`); }; im.src=dataURL;
+    });
+    g.appendChild(d);
+  });
+  const n=dataset.length;
+  document.getElementById('dsCountLbl').textContent=n;
+  document.getElementById('hdrCount').textContent=n+' image'+(n!==1?'s':'');
+}
+
+// ════ Export ════
+function exportCurrentPNG(){
+  const a=document.createElement('a'); a.href=canvas.toDataURL('image/png'); a.download='pixel_art.png'; a.click();
+}
+
+async function exportDataset(){
+  if(!dataset.length){ status('⚠ Dataset empty!'); return; }
+  status('Building ZIP…');
+  const zip=new JSZip(), imgs=zip.folder('images');
+  const lines=[], splitC={}, labelC={};
+
+  dataset.forEach(({dataURL,label,desc,tags,split,source,style,w,h},i)=>{
+    const fname=`image_${String(i).padStart(4,'0')}.png`;
+    imgs.file(fname,dataURL.split(',')[1],{base64:true});
+    lines.push(JSON.stringify({file_name:'images/'+fname,label,description:desc,tags,split,source,style,width:w,height:h}));
+    splitC[split]=(splitC[split]||0)+1;
+    labelC[label]=(labelC[label]||0)+1;
+  });
+
+  zip.file('metadata.jsonl',lines.join('\n'));
+
+  const allTags=[...new Set(dataset.flatMap(d=>d.tags))];
+  const tagYaml=allTags.length?'\n'+allTags.map(t=>'- '+t).join('\n'):'';
+  const splitMd=Object.entries(splitC).map(([k,v])=>`| ${k} | ${v} |`).join('\n');
+  const labelMd=Object.entries(labelC).sort((a,b)=>b[1]-a[1]).slice(0,30).map(([k,v])=>`| ${k} | ${v} |`).join('\n');
+
+  zip.file('README.md',
+`---
+license: cc0-1.0
+task_categories:
+- image-classification
+- unconditional-image-generation
+tags:
+- pixel-art
+- tiny${tagYaml}
+size_categories:
+- n<1K
+---
+
+# Pixel Art Dataset
+
+Built with **Pixel·Forge** — a browser-based pixel art dataset builder (Made by Simonko912)
+
+## Statistics
+
+| Metric | Value |
+|--------|-------|
+| Total images | ${dataset.length} |
+| Format | PNG, RGB |
+| Max resolution | 512×512 px |
+| Unique labels | ${Object.keys(labelC).length} |
+
+## Splits
+
+| Split | Count |
+|-------|-------|
+${splitMd}
+
+## Labels
+
+| Label | Count |
+|-------|-------|
+${labelMd}
+
+## Metadata Schema
+
+Each line of \`metadata.jsonl\` is a JSON object:
+
+\`\`\`json
+{
+  "file_name": "images/image_0000.png",
+  "label": "cat",
+  "description": "a red pixel-art cat sitting",
+  "tags": ["red", "animal"],
+  "split": "train",
+  "source": "",
+  "style": "pixel-art",
+  "width": 32,
+  "height": 32
+}
+\`\`\`
+
+## Usage
+
+\`\`\`python
+from datasets import load_dataset
+
+# Load (auto-detects splits from the "split" field)
+ds = load_dataset("imagefolder", data_dir=".")
+
+# Access
+img   = ds["train"][0]["image"]   # PIL Image
+label = ds["train"][0]["label"]   # ClassLabel int
+
+# Push to Hub
+ds.push_to_hub("username/my-pixel-dataset")
+\`\`\`
+`);
+
+  const blob=await zip.generateAsync({type:'blob'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='pixel_dataset.zip'; a.click();
+  status(`✓ Exported ${dataset.length} images!`);
+}
+
+function showHFModal(){
+  const repo=document.getElementById('hfRepo').value.trim()||'username/my-pixel-dataset';
+  document.getElementById('hfPre').textContent=
+`# Install deps
+pip install huggingface_hub datasets Pillow
+
+# Python — two options:
+
+# Option A: push_to_hub (easiest)
+from datasets import load_dataset
+ds = load_dataset("imagefolder", data_dir="pixel_dataset")
+ds.push_to_hub("${repo}", token="YOUR_HF_WRITE_TOKEN")
+
+# Option B: upload raw folder (keeps exact file structure)
+from huggingface_hub import HfApi
+api = HfApi()
+api.create_repo("${repo}", repo_type="dataset", exist_ok=True)
+api.upload_folder(
+    folder_path="pixel_dataset",   # path to unzipped folder
+    repo_id="${repo}",
+    repo_type="dataset",
+    token="YOUR_HF_WRITE_TOKEN",
+)
+# Done! https://huggingface.co/datasets/${repo}`;
+  document.getElementById('hfModal').classList.add('open');
+}
+
+document.querySelectorAll('.modal-bg').forEach(bg=>bg.addEventListener('click',e=>{ if(e.target===bg) bg.classList.remove('open'); }));
+
+// ════ Boot ════
+initCanvas(32,32,false);
+updateSwatch();
+drawBrushPreview();
+status('ready — click the canvas to draw!');
+</script>
+</body>
+</html>
