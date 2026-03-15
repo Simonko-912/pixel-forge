@@ -21,7 +21,7 @@ header h1 { font-family:var(--display); font-size:1.15rem; letter-spacing:.12em;
 header span { color:var(--muted); font-size:.78rem; }
 .app { display:flex; height:calc(100vh - 44px); overflow:hidden; }
 
-.left-panel  { width:215px; flex-shrink:0; display:flex; flex-direction:column; border-right:1px solid var(--border); overflow-y:auto; background:var(--panel); }
+.left-panel  { width:310px; flex-shrink:0; display:flex; flex-direction:column; border-right:1px solid var(--border); overflow-y:auto; background:var(--panel); }
 .right-panel { width:260px; flex-shrink:0; display:flex; flex-direction:column; border-left:1px solid var(--border);  overflow-y:auto; background:var(--panel); }
 
 .canvas-area { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:16px; background:radial-gradient(ellipse at center,#0d1520 0%,var(--bg) 70%); overflow:hidden; position:relative; }
@@ -141,105 +141,116 @@ select option { background:var(--card); }
 
   <div class="section">
     <div class="stitle">Canvas</div>
-    <div style="display:flex;gap:4px;align-items:center;margin-bottom:6px">
-      <input type="number" id="canvasW" value="32" min="1" max="512" style="width:46px">
-      <span style="color:var(--muted)">×</span>
-      <input type="number" id="canvasH" value="32" min="1" max="512" style="width:46px">
-      <button onclick="applySize()">Set</button>
-    </div>
-    <div class="brow">
-      <button onclick="clearCanvas()">Clear</button>
-      <button onclick="fillCanvas()">Fill</button>
-      <button onclick="flipH()" title="Flip horizontal">↔</button>
-      <button onclick="flipV()" title="Flip vertical">↕</button>
-      <button onclick="rotCW()" title="Rotate 90° CW">↻</button>
-    </div>
-    <label class="lbl">Zoom</label>
-    <div style="display:flex;align-items:center;gap:5px">
-      <input type="range" id="zoomSl" min="2" max="16" value="10" oninput="applyZoom()" style="flex:1;accent-color:var(--accent3)">
-      <span id="zoomLbl" style="color:var(--accent3);font-size:.7rem;min-width:26px">10×</span>
+    <div style="display:flex;gap:8px;align-items:flex-start">
+      <div style="flex:1">
+        <div style="display:flex;gap:4px;align-items:center;margin-bottom:6px">
+          <input type="number" id="canvasW" value="32" min="1" max="512" style="width:46px">
+          <span style="color:var(--muted)">×</span>
+          <input type="number" id="canvasH" value="32" min="1" max="512" style="width:46px">
+          <button onclick="applySize()">Set</button>
+        </div>
+        <div class="brow">
+          <button onclick="clearCanvas()" style="flex:1">Clear</button>
+          <button onclick="fillCanvas()"  style="flex:1">Fill</button>
+          <button onclick="flipH()" title="Flip horizontal">↔</button>
+          <button onclick="flipV()" title="Flip vertical">↕</button>
+          <button onclick="rotCW()" title="Rotate 90° CW">↻</button>
+        </div>
+      </div>
+      <div style="flex:1">
+        <div class="lbl" style="margin-top:0">Zoom</div>
+        <div style="display:flex;align-items:center;gap:5px">
+          <input type="range" id="zoomSl" min="2" max="16" value="10" oninput="applyZoom()" style="flex:1;accent-color:var(--accent3)">
+          <span id="zoomLbl" style="color:var(--accent3);font-size:.7rem;min-width:26px">10×</span>
+        </div>
+      </div>
     </div>
   </div>
 
   <div class="section">
     <div class="stitle">Draw Tools</div>
     <div class="brow" style="margin-bottom:4px">
-      <button id="toolDraw"    class="active" onclick="setTool('draw')"    title="Draw [D]">✏ Draw</button>
-      <button id="toolErase"   onclick="setTool('erase')"   title="Erase [E]">◻ Erase</button>
+      <button id="toolDraw"    class="active" onclick="setTool('draw')"    title="Draw [D]"     style="flex:1">✏ Draw</button>
+      <button id="toolErase"   onclick="setTool('erase')"   title="Erase [E]"    style="flex:1">◻ Erase</button>
+      <button id="toolFill"    onclick="setTool('fill')"    title="Flood Fill [F]" style="flex:1">▣ Fill</button>
     </div>
     <div class="brow" style="margin-bottom:4px">
-      <button id="toolFill"    onclick="setTool('fill')"    title="Flood Fill [F]">▣ Fill</button>
-      <button id="toolPick"    onclick="setTool('pick')"    title="Color Picker [K]">+ Pick</button>
+      <button id="toolPick"    onclick="setTool('pick')"    title="Color Picker [K]" style="flex:1">+ Pick</button>
+      <button id="toolSpray"   onclick="setTool('spray')"   title="Spray Paint"      style="flex:1">~ Spray</button>
+      <button id="toolLine"    onclick="setTool('line')"    title="Line [L]"         style="flex:1">/ Line</button>
     </div>
     <div class="brow" style="margin-bottom:4px">
-      <button id="toolSpray"   onclick="setTool('spray')"   title="Spray Paint">~ Spray</button>
-      <button id="toolLine"    onclick="setTool('line')"    title="Line [L]">/ Line</button>
+      <button id="toolRect"    onclick="setTool('rect')"    title="Rectangle [R]"  style="flex:1">▭ Rect</button>
+      <button id="toolEllipse" onclick="setTool('ellipse')" title="Ellipse"        style="flex:1">◯ Ellipse</button>
+      <button style="flex:1;opacity:0;pointer-events:none"></button>
+    </div>
+    <div class="stitle" style="margin-top:6px">Select &amp; Edit</div>
+    <div class="brow" style="margin-bottom:4px">
+      <button id="toolSelect"  onclick="setTool('select')"  title="Select Rectangle [S]" style="flex:1">⬚ Select</button>
+      <button id="toolMove"    onclick="setTool('move')"    title="Move Selection [M]"   style="flex:1">✥ Move</button>
+      <button onclick="selAll()" title="Select All [Ctrl+A]"                             style="flex:1">◻ Sel All</button>
     </div>
     <div class="brow" style="margin-bottom:4px">
-      <button id="toolRect"    onclick="setTool('rect')"    title="Rectangle [R]">▭ Rect</button>
-      <button id="toolEllipse" onclick="setTool('ellipse')" title="Ellipse">◯ Ellipse</button>
-    </div>
-    <div class="stitle" style="margin-top:8px">Select &amp; Edit</div>
-    <div class="brow" style="margin-bottom:4px">
-      <button id="toolSelect"  onclick="setTool('select')"  title="Select Rectangle [S]">⬚ Select</button>
-      <button id="toolMove"    onclick="setTool('move')"    title="Move Selection [M]">✥ Move</button>
-    </div>
-    <div class="brow" style="margin-bottom:4px">
-      <button onclick="selAll()"       title="Select All [Ctrl+A]">◻ Sel All</button>
-      <button onclick="deselect()"     title="Deselect [Esc]">✕ Desel</button>
-    </div>
-    <div class="brow" style="margin-bottom:4px">
-      <button onclick="selCopy()"  title="Copy [Ctrl+C]"  id="btnCopy">⎘ Copy</button>
-      <button onclick="selCut()"   title="Cut [Ctrl+X]"   id="btnCut">✂ Cut</button>
-      <button onclick="selPaste()" title="Paste [Ctrl+V]" id="btnPaste">⎙ Paste</button>
+      <button onclick="selCopy()"      title="Copy [Ctrl+C]"  id="btnCopy"  style="flex:1">⎘ Copy</button>
+      <button onclick="selCut()"       title="Cut [Ctrl+X]"   id="btnCut"   style="flex:1">✂ Cut</button>
+      <button onclick="selPaste()"     title="Paste [Ctrl+V]" id="btnPaste" style="flex:1">⎙ Paste</button>
     </div>
     <div class="brow">
-      <button onclick="delSelection()" title="Delete selection [Del]" class="danger">✕ Delete Sel</button>
+      <button onclick="deselect()"     title="Deselect [Esc]"        style="flex:1">✕ Desel</button>
+      <button onclick="delSelection()" title="Delete selection [Del]" style="flex:1" class="danger">✕ Delete Sel</button>
     </div>
-    <div class="stitle" style="margin-top:8px">History</div>
+    <div class="stitle" style="margin-top:6px">History</div>
     <div class="brow">
-      <button onclick="undo()" id="btnUndo" title="Undo [Ctrl+Z]" disabled>↩ Undo</button>
-      <button onclick="redo()" id="btnRedo" title="Redo [Ctrl+Y]" disabled>↪ Redo</button>
+      <button onclick="undo()" id="btnUndo" title="Undo [Ctrl+Z]" disabled style="flex:1">↩ Undo</button>
+      <button onclick="redo()" id="btnRedo" title="Redo [Ctrl+Y]" disabled style="flex:1">↪ Redo</button>
     </div>
   </div>
 
   <div class="section">
-    <div class="stitle">Brush Size</div>
-    <div class="bs-wrap" id="bsWrap"></div>
-    <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px">
-      <span style="font-size:.7rem;color:var(--muted)">1–32:</span>
-      <input type="range" id="bsCustSl" min="1" max="32" value="1" oninput="setBrushSize(+this.value)" style="flex:1;accent-color:var(--accent2)">
-      <span id="bsLbl" style="color:var(--accent2);font-size:.7rem;min-width:22px">1</span>
+    <div style="display:flex;gap:10px;align-items:flex-start">
+      <div style="flex:1">
+        <div class="stitle">Brush Size</div>
+        <div class="bs-wrap" id="bsWrap"></div>
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px">
+          <input type="range" id="bsCustSl" min="1" max="32" value="1" oninput="setBrushSize(+this.value)" style="flex:1;accent-color:var(--accent2)">
+          <span id="bsLbl" style="color:var(--accent2);font-size:.7rem;min-width:22px">1</span>
+        </div>
+        <div class="bprev-wrap"><canvas id="brushPreview" width="32" height="32" style="width:52px;height:52px"></canvas></div>
+      </div>
+      <div style="flex:1">
+        <div class="stitle">Brush Shape</div>
+        <div class="bsh-wrap" style="flex-direction:column;gap:3px">
+          <div style="display:flex;gap:3px">
+            <button class="bsh-btn active" id="bshSquare"  onclick="selectBuiltinBrush('square')"  style="flex:1">■ Square</button>
+            <button class="bsh-btn"        id="bshCircle"  onclick="selectBuiltinBrush('circle')"  style="flex:1">● Circle</button>
+          </div>
+          <div style="display:flex;gap:3px">
+            <button class="bsh-btn"        id="bshDiamond" onclick="selectBuiltinBrush('diamond')" style="flex:1">◆ Diamond</button>
+            <button class="bsh-btn"        id="bshCross"   onclick="selectBuiltinBrush('cross')"   style="flex:1">✚ Cross</button>
+          </div>
+        </div>
+        <button style="width:100%;font-size:.68rem;margin-top:4px" onclick="openBrushEditor(-1)">+ New Custom</button>
+      </div>
     </div>
-    <div class="bprev-wrap"><canvas id="brushPreview" width="32" height="32" style="width:60px;height:60px"></canvas></div>
-  </div>
-
-  <div class="section">
-    <div class="stitle">Brush Shape</div>
-    <div class="bsh-wrap">
-      <button class="bsh-btn active" id="bshSquare"  onclick="selectBuiltinBrush('square')">■ Square</button>
-      <button class="bsh-btn"        id="bshCircle"  onclick="selectBuiltinBrush('circle')">● Circle</button>
-      <button class="bsh-btn"        id="bshDiamond" onclick="selectBuiltinBrush('diamond')">◆ Diamond</button>
-      <button class="bsh-btn"        id="bshCross"   onclick="selectBuiltinBrush('cross')">✚ Cross</button>
-    </div>
-    <button style="width:100%;font-size:.7rem;margin-bottom:6px" onclick="openBrushEditor(-1)">+ Create New Custom Brush...</button>
-    <div class="stitle" style="margin-top:4px">Custom Brushes</div>
+    <div class="stitle" style="margin-top:8px">Custom Brushes</div>
     <div id="customBrushesList"></div>
   </div>
 
   <div class="section">
     <div class="stitle">Color</div>
-    <div id="colorSwatch"></div>
-    <div class="crow">
-      <input type="color" id="colorPickerNative" value="#ff0000" oninput="onNativePick(this.value)">
-      <div class="rgba-sl">
+    <div id="colorSwatch" style="margin-bottom:6px"></div>
+    <div style="display:flex;gap:8px">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+        <input type="color" id="colorPickerNative" value="#ff0000" oninput="onNativePick(this.value)">
+        <div class="pal-grid" id="palGrid" style="width:72px;grid-template-columns:repeat(4,1fr)"></div>
+      </div>
+      <div class="rgba-sl" style="flex:1">
         <div class="sl-row"><em style="color:#ff7777">R</em><input type="range" id="slR" min="0" max="255" value="255" oninput="onSlider()" style="accent-color:#ff7777"><span id="vR">255</span></div>
         <div class="sl-row"><em style="color:#77ff99">G</em><input type="range" id="slG" min="0" max="255" value="0"   oninput="onSlider()" style="accent-color:#77ff99"><span id="vG">0</span></div>
         <div class="sl-row"><em style="color:#77aaff">B</em><input type="range" id="slB" min="0" max="255" value="0"   oninput="onSlider()" style="accent-color:#77aaff"><span id="vB">0</span></div>
         <div class="sl-row"><em style="color:var(--muted)">A</em><input type="range" id="slA" min="0" max="255" value="255" oninput="onSlider()" style="accent-color:#aaa"><span id="vA">255</span></div>
       </div>
     </div>
-    <div class="pal-grid" id="palGrid"></div>
   </div>
 
 </div>
