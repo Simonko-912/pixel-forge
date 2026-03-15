@@ -30,6 +30,8 @@ recognize images etc.
 This app doesnt need to use pytorch or for the html one, web pytorch, it just reimplements things in js / numpy for the python version.
 Pixel trainer is slower beacose of that, its ment for small experiments.
 You can use the pixeltrainer.py or the pixeltrainer.html in the site folder.
+### To use simply visit:
+https://simonko-912.github.io/pixel-forge/pixeltrainer.html
 
 ### Pixel forge screenshots:
 <img width="1918" height="939" alt="image" src="https://github.com/user-attachments/assets/6dad4635-9ae4-4e21-92f5-d022ff0f6648" />
