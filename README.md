@@ -24,6 +24,14 @@ rm pixel-forge
 ```
 Or simply go to this repos root, go to sites and download index.html
 
+## pixel-trainer
+Pixel trainer is a html / python app to train simple nerual networks on pixel forge datasets, you can train models to generate images,
+recognize images etc. 
+This app doesnt need to use pytorch or for the html one, web pytorch, it just reimplements things in js / numpy for the python version.
+Pixel trainer is slower beacose of that, its ment for small experiments.
+You can use the pixeltrainer.py or the pixeltrainer.html in the site folder.
+
+### Pixel forge screenshots:
 <img width="1918" height="939" alt="image" src="https://github.com/user-attachments/assets/6dad4635-9ae4-4e21-92f5-d022ff0f6648" />
 <img width="932" height="888" alt="image" src="https://github.com/user-attachments/assets/6f5e4ffd-2413-467c-90f6-e3c49e6c8f18" />
 <img width="1917" height="938" alt="image" src="https://github.com/user-attachments/assets/1ccbcbf5-3718-409a-a551-77de6b4f5eb0" />
