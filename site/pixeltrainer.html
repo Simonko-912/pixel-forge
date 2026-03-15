@@ -1,0 +1,1854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixel·Trainer</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#06080c;--panel:#0b0f14;--card:#101820;--border:#182030;
+  --a1:#00ffcc;--a2:#ff3a6e;--a3:#ffe566;--a4:#7c6aff;--a5:#ff8c42;
+  --text:#b8ccd8;--muted:#3a5060;--success:#00ffcc;
+  --font:'Share Tech Mono',monospace;--display:'Orbitron',monospace;
+}
+html,body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;min-height:100vh;overflow-x:hidden}
+
+/* scan-line overlay */
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 4px);pointer-events:none;z-index:9999}
+/* background grid */
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,255,204,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,204,.03) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;z-index:0}
+
+header{position:relative;z-index:10;padding:12px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px;background:linear-gradient(90deg,rgba(0,255,204,.04),transparent)}
+header h1{font-family:var(--display);font-size:1.2rem;letter-spacing:.14em;background:linear-gradient(90deg,var(--a1),var(--a4));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+header .sub{color:var(--muted);font-size:.72rem}
+.badge{font-size:.6rem;padding:2px 7px;border-radius:2px;border:1px solid;font-family:var(--display);letter-spacing:.1em}
+.badge-tf{border-color:var(--a5);color:var(--a5)}
+#hdrStatus{margin-left:auto;font-size:.7rem;color:var(--a1)}
+
+/* layout */
+.app{position:relative;z-index:1;display:grid;grid-template-columns:260px 1fr 300px;grid-template-rows:1fr;height:calc(100vh - 48px);overflow:hidden}
+
+/* panels */
+.lpanel,.rpanel{display:flex;flex-direction:column;overflow-y:auto;background:var(--panel)}
+.lpanel{border-right:1px solid var(--border)}
+.rpanel{border-left:1px solid var(--border)}
+.main{display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+
+.section{border-bottom:1px solid var(--border);padding:12px 14px}
+.stitle{font-family:var(--display);font-size:.52rem;letter-spacing:.22em;color:var(--a1);text-transform:uppercase;margin-bottom:10px}
+
+button{font-family:var(--font);font-size:.75rem;border:1px solid var(--border);background:var(--card);color:var(--text);padding:5px 10px;cursor:pointer;border-radius:2px;transition:all .12s;white-space:nowrap}
+button:hover{border-color:var(--a1);color:var(--a1)}
+button.pri{background:var(--a1);color:#000;border-color:var(--a1);font-weight:700}
+button.pri:hover{background:#00ddaa}
+button.sec{border-color:var(--a4);color:var(--a4)}
+button.sec:hover{background:var(--a4);color:#fff}
+button.danger{border-color:var(--a2);color:var(--a2)}
+button.danger:hover{background:var(--a2);color:#fff}
+button:disabled{opacity:.3;cursor:not-allowed}
+button:disabled:hover{border-color:var(--border);color:var(--text);background:var(--card)}
+.brow{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
+
+input[type=number],input[type=text],input[type=url],select{font-family:var(--font);font-size:.75rem;background:var(--card);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:2px;width:100%}
+input:focus,select:focus{outline:none;border-color:var(--a1)}
+select option{background:var(--card)}
+.lbl{font-size:.68rem;color:var(--muted);display:block;margin-bottom:2px;margin-top:6px}
+input[type=range]{width:100%;accent-color:var(--a1);cursor:pointer}
+
+/* tabs */
+.tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.tab{padding:8px 16px;font-size:.7rem;font-family:var(--display);letter-spacing:.1em;border-right:1px solid var(--border);cursor:pointer;color:var(--muted);transition:all .12s;border-bottom:none;background:none;border-top:none;border-left:none}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--a1);border-bottom:2px solid var(--a1);background:rgba(0,255,204,.04)}
+.tabcontent{flex:1;overflow:auto;padding:16px;display:none}
+.tabcontent.active{display:block}
+
+/* drop zone */
+#dropZone{border:2px dashed var(--border);border-radius:4px;padding:32px 16px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:10px}
+#dropZone:hover,#dropZone.over{border-color:var(--a1);background:rgba(0,255,204,.04)}
+#dropZone .dz-icon{font-size:2rem;margin-bottom:8px;color:var(--muted)}
+#dropZone .dz-text{font-size:.72rem;color:var(--muted);line-height:1.7}
+
+/* dataset grid */
+#dsGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:3px;margin-top:8px;max-height:240px;overflow-y:auto}
+.ds-thumb{position:relative;aspect-ratio:1;border:1px solid var(--border);border-radius:2px;overflow:hidden;cursor:default}
+.ds-thumb img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated;background:#0a0f14}
+.ds-thumb .dt-lbl{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.8);font-size:.42rem;padding:1px 2px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ds-thumb:hover{border-color:var(--a1)}
+
+/* class chips */
+#classChips{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
+.chip{font-size:.63rem;padding:2px 7px;border-radius:2px;border:1px solid var(--border);color:var(--muted);transition:all .12s}
+.chip.on{border-color:var(--a1);color:var(--a1);background:rgba(0,255,204,.08)}
+
+/* progress bar */
+.prog-wrap{background:var(--card);border:1px solid var(--border);border-radius:2px;height:6px;overflow:hidden;margin:6px 0}
+.prog-bar{height:100%;width:0%;transition:width .3s;border-radius:2px}
+.prog-bar.train{background:linear-gradient(90deg,var(--a1),var(--a4))}
+.prog-bar.load{background:linear-gradient(90deg,var(--a3),var(--a5))}
+
+/* chart canvas */
+.chart-wrap{position:relative;background:var(--card);border:1px solid var(--border);border-radius:2px;margin-top:8px}
+.chart-wrap canvas{display:block;width:100%!important}
+.chart-title{font-size:.6rem;color:var(--muted);padding:5px 8px;border-bottom:1px solid var(--border)}
+
+/* log */
+#trainLog{height:110px;overflow-y:auto;background:var(--card);border:1px solid var(--border);border-radius:2px;padding:6px;margin-top:8px;font-size:.63rem;line-height:1.7;color:var(--muted)}
+#trainLog .epoch{color:var(--a1)}
+#trainLog .info{color:var(--text)}
+#trainLog .warn{color:var(--a3)}
+#trainLog .err{color:var(--a2)}
+
+/* draw pad */
+#padWrap{display:flex;flex-direction:column;align-items:center;gap:8px}
+#drawPad{image-rendering:pixelated;cursor:crosshair;border:2px solid var(--a4);box-shadow:0 0 18px rgba(124,106,255,.2)}
+.pred-bars{width:100%;max-width:320px}
+.pred-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.pred-lbl{width:80px;font-size:.65rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;flex-shrink:0}
+.pred-bar-wrap{flex:1;background:var(--card);border:1px solid var(--border);height:14px;border-radius:1px;overflow:hidden}
+.pred-bar-fill{height:100%;background:linear-gradient(90deg,var(--a4),var(--a1));transition:width .3s;border-radius:1px}
+.pred-pct{width:36px;font-size:.63rem;color:var(--a1);text-align:right}
+.pred-row.top .pred-lbl{color:var(--a1)}
+.pred-row.top .pred-bar-fill{background:linear-gradient(90deg,var(--a1),var(--a3))}
+
+/* generate grid */
+#genGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:4px;margin-top:8px}
+.gen-img{border:1px solid var(--border);border-radius:2px;overflow:hidden}
+.gen-img canvas{display:block;width:100%;image-rendering:pixelated}
+
+/* model summary */
+#modelSummary{font-size:.62rem;line-height:1.9;color:var(--muted)}
+#modelSummary b{color:var(--a1)}
+
+/* stat cards */
+.statrow{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.stat{flex:1;min-width:70px;background:var(--card);border:1px solid var(--border);border-radius:2px;padding:7px 9px}
+.stat-val{font-family:var(--display);font-size:.95rem;color:var(--a1)}
+.stat-lbl{font-size:.58rem;color:var(--muted);margin-top:1px}
+
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+.mode-btn{flex:1;padding:7px;font-size:.7rem;font-family:var(--display);letter-spacing:.08em}
+.mode-btn.active{background:var(--a4);color:#fff;border-color:var(--a4)}
+.gtab{font-family:var(--display);letter-spacing:.06em}
+.gtab.active{background:var(--a4);color:#fff;border-color:var(--a4)}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.pulsing{animation:pulse 1.2s ease-in-out infinite}
+</style>
+</head>
+<body>
+<header>
+  <h1>PIXEL·TRAINER</h1>
+  <span class="sub">browser neural network</span>
+  <span class="badge badge-tf">TensorFlow.js</span>
+  <span id="hdrStatus" class="pulsing">loading tf…</span>
+</header>
+
+<div class="app">
+
+<!-- ══ LEFT PANEL ══ -->
+<div class="lpanel">
+
+  <div class="section">
+    <div class="stitle">Load Dataset</div>
+    <div id="dropZone" onclick="document.getElementById('zipInput').click()" ondragover="dzOver(event)" ondragleave="dzLeave()" ondrop="dzDrop(event)">
+      <div class="dz-icon">◈</div>
+      <div class="dz-text">Drop Pixel·Forge ZIP<br>or click to browse</div>
+    </div>
+    <input type="file" id="zipInput" accept=".zip" style="display:none" onchange="loadZip(this.files[0])">
+    <div class="lbl">Or load from HuggingFace</div>
+    <input type="text" id="hfUrl" placeholder="username/dataset-name">
+    <button style="width:100%;margin-top:5px" onclick="loadFromHF()">↓ Load from HF</button>
+    <div class="prog-wrap" id="loadProgWrap" style="display:none"><div class="prog-bar load" id="loadProg"></div></div>
+    <div id="loadMsg" style="font-size:.63rem;color:var(--muted);margin-top:4px"></div>
+  </div>
+
+  <div class="section">
+    <div class="stitle">Dataset <span id="dsCountBadge" style="color:var(--a3)">—</span></div>
+    <div class="statrow" id="dsStats"></div>
+    <div id="classChips"></div>
+    <div id="dsGrid"></div>
+  </div>
+
+  <div class="section">
+    <div class="stitle">Mode</div>
+    <div class="brow">
+      <button class="mode-btn active" id="modeClassify" onclick="setMode('classify')">Classify</button>
+      <button class="mode-btn" id="modeGenerate" onclick="setMode('generate')">Generate</button>
+    </div>
+    <div id="modeDesc" style="font-size:.63rem;color:var(--muted);line-height:1.6;margin-top:4px">
+      Train a CNN to recognise which class a doodle belongs to.
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ MAIN ══ -->
+<div class="main">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('train')">Train</button>
+    <button class="tab" onclick="switchTab('test')">Test / Infer</button>
+    <button class="tab" onclick="switchTab('generate')">Generate</button>
+    <button class="tab" onclick="switchTab('model')">Model</button>
+  </div>
+
+  <!-- TRAIN TAB -->
+  <div class="tabcontent active" id="tab-train">
+    <div class="statrow" id="trainStats">
+      <div class="stat"><div class="stat-val" id="stEpoch">—</div><div class="stat-lbl">epoch</div></div>
+      <div class="stat"><div class="stat-val" id="stLoss">—</div><div class="stat-lbl">loss</div></div>
+      <div class="stat"><div class="stat-val" id="stAcc">—</div><div class="stat-lbl">accuracy</div></div>
+      <div class="stat"><div class="stat-val" id="stVAcc">—</div><div class="stat-lbl">val acc</div></div>
+    </div>
+    <div class="prog-wrap"><div class="prog-bar train" id="trainProg"></div></div>
+    <div id="trainLog"></div>
+    <div class="chart-wrap" style="margin-top:8px">
+      <div class="chart-title">Loss & Accuracy</div>
+      <canvas id="chartCanvas" height="160"></canvas>
+    </div>
+  </div>
+
+  <!-- TEST TAB -->
+  <div class="tabcontent" id="tab-test">
+    <div id="padWrap">
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:8px">Draw a doodle — the model predicts in real time</div>
+      <div style="display:flex;gap:8px;align-items:flex-start">
+        <div>
+          <canvas id="drawPad" width="128" height="128" style="width:224px;height:224px;display:block"></canvas>
+          <div class="brow" style="margin-top:5px">
+            <button onclick="clearPad()" style="flex:1">Clear</button>
+            <button onclick="predictPad()" class="pri" style="flex:1">Predict</button>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;min-width:100px">
+          <div class="lbl" style="margin-top:0">Draw color</div>
+          <input type="color" id="padColor" value="#ffffff" style="width:100%;height:32px;cursor:pointer;border:1px solid var(--border);background:var(--card);border-radius:2px;padding:1px">
+          <div class="lbl">Brush size</div>
+          <div style="display:flex;align-items:center;gap:4px">
+            <input type="range" id="padBrush" min="1" max="32" value="4" oninput="document.getElementById('padBrushLbl').textContent=this.value" style="flex:1">
+            <span id="padBrushLbl" style="color:var(--a3);font-size:.7rem;min-width:18px">4</span>
+          </div>
+          <div class="lbl">Background</div>
+          <div class="brow">
+            <button onclick="setPadBg('#000000')" style="flex:1;font-size:.63rem">Black</button>
+            <button onclick="setPadBg('#ffffff')" style="flex:1;font-size:.63rem">White</button>
+          </div>
+          <div class="lbl">Eraser</div>
+          <button id="btnEraser" onclick="toggleEraser()" style="font-size:.65rem">Eraser: Off</button>
+        </div>
+      </div>
+      <div class="pred-bars" id="predBars" style="margin-top:10px;max-width:340px"></div>
+    </div>
+  </div>
+
+  <!-- GENERATE TAB -->
+  <div class="tabcontent" id="tab-generate">
+    <!-- Model type selector -->
+    <div style="display:flex;gap:3px;margin-bottom:10px">
+      <button id="gtab-mlp"  onclick="setGenTab('mlp')"  class="gtab active" style="flex:1;font-size:.65rem;padding:6px 4px;letter-spacing:.06em">MLP</button>
+      <button id="gtab-ddpm" onclick="setGenTab('ddpm')" class="gtab"        style="flex:1;font-size:.65rem;padding:6px 4px;letter-spacing:.06em">DDPM</button>
+      <button id="gtab-gan"  onclick="setGenTab('gan')"  class="gtab"        style="flex:1;font-size:.65rem;padding:6px 4px;letter-spacing:.06em">GAN</button>
+    </div>
+
+    <!-- ── MLP panel ── -->
+    <div class="gpanel" id="gp-mlp">
+      <div style="font-size:.63rem;color:var(--muted);margin-bottom:8px;line-height:1.6">
+        Conditional MLP: <b>[class one-hot + noise] → pixels</b>.<br>
+        Train in Generate → MLP mode first.
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <div style="flex:1;min-width:110px"><div class="lbl" style="margin-top:0">Class</div><select id="genClass" style="width:100%"></select></div>
+        <div style="flex:1;min-width:90px">
+          <div class="lbl" style="margin-top:0">Noise <span id="genNoiseLbl" style="color:var(--a4)">0.50</span></div>
+          <input type="range" id="genNoise" min="0" max="2" step="0.05" value="0.5" style="accent-color:var(--a4)"
+            oninput="document.getElementById('genNoiseLbl').textContent=parseFloat(this.value).toFixed(2)">
+        </div>
+      </div>
+      <div class="brow">
+        <button onclick="genMLP(1)" class="pri">Gen 1</button>
+        <button onclick="genMLP(8)">Gen 8</button>
+        <button onclick="genMLP(32)">Gen 32</button>
+      </div>
+      <div id="genMsgMLP" style="font-size:.62rem;color:var(--muted);margin-top:5px">Train MLP generator first.</div>
+    </div>
+
+    <!-- ── DDPM panel ── -->
+    <div class="gpanel" id="gp-ddpm" style="display:none">
+      <div style="font-size:.63rem;color:var(--muted);margin-bottom:8px;line-height:1.6">
+        <b>Denoising Diffusion Probabilistic Model</b> — same math as Stable Diffusion.<br>
+        Learns to reverse Gaussian noise step-by-step. Generates from pure noise via iterative denoising.
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <div style="flex:1;min-width:110px">
+          <div class="lbl" style="margin-top:0">Class</div>
+          <select id="ddpmClass" style="width:100%"><option value="-1">— unconditional —</option></select>
+        </div>
+        <div style="flex:1;min-width:90px">
+          <div class="lbl" style="margin-top:0">Denoise steps <span id="ddpmStepsLbl" style="color:var(--a4)">50</span></div>
+          <input type="range" id="ddpmSteps" min="10" max="200" step="10" value="50" style="accent-color:var(--a4)"
+            oninput="document.getElementById('ddpmStepsLbl').textContent=this.value">
+        </div>
+      </div>
+      <div class="brow">
+        <button onclick="genDDPM(1)" class="pri" id="btnGenDDPM">Gen 1</button>
+        <button onclick="genDDPM(4)">Gen 4</button>
+        <button onclick="genDDPM(8)">Gen 8</button>
+      </div>
+      <div class="prog-wrap" id="ddpmGenProgWrap" style="display:none"><div class="prog-bar train" id="ddpmGenProg"></div></div>
+      <div id="genMsgDDPM" style="font-size:.62rem;color:var(--muted);margin-top:5px">Train DDPM first.</div>
+    </div>
+
+    <!-- ── GAN panel ── -->
+    <div class="gpanel" id="gp-gan" style="display:none">
+      <div style="font-size:.63rem;color:var(--muted);margin-bottom:8px;line-height:1.6">
+        <b>GAN</b> — Generator vs Discriminator adversarial training.<br>
+        Generator learns to produce images that fool the discriminator.
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <div style="flex:1;min-width:110px"><div class="lbl" style="margin-top:0">Class</div><select id="ganClass" style="width:100%"></select></div>
+        <div style="flex:1;min-width:90px">
+          <div class="lbl" style="margin-top:0">Temperature <span id="ganTempLbl" style="color:var(--a4)">1.0</span></div>
+          <input type="range" id="ganTemp" min="0.1" max="3" step="0.1" value="1" style="accent-color:var(--a4)"
+            oninput="document.getElementById('ganTempLbl').textContent=parseFloat(this.value).toFixed(1)">
+        </div>
+      </div>
+      <div class="brow">
+        <button onclick="genGAN(1)" class="pri">Gen 1</button>
+        <button onclick="genGAN(8)">Gen 8</button>
+        <button onclick="genGAN(32)">Gen 32</button>
+      </div>
+      <div id="genMsgGAN" style="font-size:.62rem;color:var(--muted);margin-top:5px">Train GAN first.</div>
+    </div>
+
+    <!-- Shared output -->
+    <div id="genGrid" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:10px"></div>
+    <div class="brow" style="margin-top:6px">
+      <button onclick="document.getElementById('genGrid').innerHTML=''" class="danger" style="font-size:.65rem">Clear grid</button>
+    </div>
+  </div>
+
+  <!-- MODEL TAB -->
+  <div class="tabcontent" id="tab-model">
+    <div id="modelSummary"><span style="color:var(--muted)">No model built yet.</span></div>
+    <div style="margin-top:12px" class="brow">
+      <button onclick="exportModel()" id="btnExport" disabled>↓ Export Model (JSON)</button>
+      <button onclick="document.getElementById('importModel').click()" class="sec">↑ Import Model</button>
+      <input type="file" id="importModel" accept=".json,.bin" multiple style="display:none" onchange="importModelFiles(this)">
+    </div>
+  </div>
+</div>
+
+<!-- ══ RIGHT PANEL ══ -->
+<div class="rpanel">
+
+  <div class="section">
+    <div class="stitle">Input</div>
+    <div class="lbl">Color mode</div>
+    <div class="brow" style="margin-bottom:6px">
+      <button class="mode-btn active" id="modeRGB"  onclick="setColorMode(3)" style="flex:1;font-size:.68rem">RGB Color</button>
+      <button class="mode-btn"        id="modeGray" onclick="setColorMode(1)" style="flex:1;font-size:.68rem">Grayscale</button>
+    </div>
+    <div id="sizeWarning" style="font-size:.62rem;color:var(--a3);display:none;line-height:1.5;margin-top:4px">
+      ⚠ Images &gt;128px: training will be slow. Consider using a smaller batch size.
+    </div>
+  </div>
+
+  <!-- Classifier settings -->
+  <div class="section" id="secClassify">
+    <div class="stitle">Classifier Architecture</div>
+    <div class="lbl">Conv layers</div>
+    <select id="cfgConvLayers">
+      <option value="2">2 — lightweight (≤32px)</option>
+      <option value="3" selected>3 — balanced (32–128px)</option>
+      <option value="4">4 — deep (128–256px)</option>
+      <option value="5">5 — very deep (256px+)</option>
+    </select>
+    <div class="lbl">Filters (first conv layer)</div>
+    <select id="cfgFilters">
+      <option value="8">8 — tiny</option>
+      <option value="16" selected>16 — small</option>
+      <option value="32">32 — medium</option>
+      <option value="64">64 — large</option>
+    </select>
+    <div class="lbl">Conv activation</div>
+    <select id="cfgConvActivation">
+      <option value="relu" selected>ReLU (default)</option>
+      <option value="leakyrelu">Leaky ReLU</option>
+      <option value="elu">ELU</option>
+      <option value="tanh">Tanh</option>
+      <option value="sigmoid">Sigmoid</option>
+    </select>
+    <div class="lbl">Hidden (dense) layers</div>
+    <select id="cfgHiddenLayers">
+      <option value="1" selected>1 layer</option>
+      <option value="2">2 layers</option>
+      <option value="3">3 layers</option>
+    </select>
+    <div class="lbl">Hidden units per layer</div>
+    <select id="cfgDense">
+      <option value="32">32 — tiny</option>
+      <option value="64" selected>64 — small</option>
+      <option value="128">128 — medium</option>
+      <option value="256">256 — large</option>
+      <option value="512">512 — very large</option>
+    </select>
+    <div class="lbl">Dense activation</div>
+    <select id="cfgDenseActivation">
+      <option value="relu" selected>ReLU (default)</option>
+      <option value="leakyrelu">Leaky ReLU</option>
+      <option value="elu">ELU</option>
+      <option value="tanh">Tanh</option>
+    </select>
+    <div class="lbl">Dropout</div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <input type="range" id="cfgDropout" min="0" max="0.7" step="0.05" value="0.3"
+        oninput="document.getElementById('cfgDropoutLbl').textContent=parseFloat(this.value).toFixed(2)">
+      <span id="cfgDropoutLbl" style="color:var(--a1);font-size:.7rem;min-width:28px">0.30</span>
+    </div>
+    <div style="font-size:.61rem;color:var(--muted);margin-top:5px;line-height:1.55">
+      Loss: sparse categorical cross-entropy<br>
+      Metric: accuracy
+    </div>
+  </div>
+
+  <!-- Generator settings -->
+  <div class="section" id="secGenerate" style="display:none">
+    <div class="stitle">Generator</div>
+
+    <!-- sub-tabs -->
+    <div style="display:flex;gap:3px;margin-bottom:8px">
+      <button id="gcfg-mlp"  onclick="setGenCfg('mlp')"  class="gtab active" style="flex:1;font-size:.6rem;padding:4px">MLP</button>
+      <button id="gcfg-ddpm" onclick="setGenCfg('ddpm')" class="gtab"        style="flex:1;font-size:.6rem;padding:4px">DDPM</button>
+      <button id="gcfg-gan"  onclick="setGenCfg('gan')"  class="gtab"        style="flex:1;font-size:.6rem;padding:4px">GAN</button>
+    </div>
+
+    <!-- MLP cfg -->
+    <div class="gcfg" id="gcfg-mlp-p">
+      <div class="lbl">Noise dim (variety)</div>
+      <select id="cfgLatent"><option value="8">8</option><option value="16" selected>16</option><option value="32">32</option><option value="64">64</option></select>
+      <div class="lbl">Hidden layers</div>
+      <select id="cfgGenHiddenLayers"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option></select>
+      <div class="lbl">Hidden units</div>
+      <select id="cfgGenHiddenUnits"><option value="64">64</option><option value="128" selected>128</option><option value="256">256</option><option value="512">512</option></select>
+      <div class="lbl">Activation</div>
+      <select id="cfgGenAct"><option value="relu" selected>ReLU</option><option value="lrelu">Leaky ReLU</option><option value="tanh">Tanh</option><option value="elu">ELU</option></select>
+      <div style="font-size:.6rem;color:var(--muted);margin-top:5px;line-height:1.5">Loss: MSE · Output: Sigmoid</div>
+    </div>
+
+    <!-- DDPM cfg -->
+    <div class="gcfg" id="gcfg-ddpm-p" style="display:none">
+      <div class="lbl">Diffusion timesteps T</div>
+      <select id="cfgDDPMT"><option value="100">100 — fast</option><option value="200" selected>200 — balanced</option><option value="500">500 — quality</option></select>
+      <div class="lbl">Hidden size</div>
+      <select id="cfgDDPMH"><option value="64">64 — small</option><option value="128" selected>128 — medium</option><option value="256">256 — large</option></select>
+      <div class="lbl">Depth (U-Net levels)</div>
+      <select id="cfgDDPMD"><option value="2">2</option><option value="3" selected>3</option></select>
+      <div class="lbl">Conditioning</div>
+      <select id="cfgDDPMCond"><option value="class">Class label</option><option value="none">Unconditional</option></select>
+      <div style="font-size:.6rem;color:var(--muted);margin-top:5px;line-height:1.5">
+        Linear β schedule · Loss: MSE(ε)<br>Same math as Stable Diffusion
+      </div>
+    </div>
+
+    <!-- GAN cfg -->
+    <div class="gcfg" id="gcfg-gan-p" style="display:none">
+      <div class="lbl">Noise dim</div>
+      <select id="cfgGANNoise"><option value="16">16</option><option value="32" selected>32</option><option value="64">64</option><option value="128">128</option></select>
+      <div class="lbl">Generator hidden</div>
+      <select id="cfgGANGH"><option value="64">64</option><option value="128" selected>128</option><option value="256">256</option></select>
+      <div class="lbl">Generator layers</div>
+      <select id="cfgGANGL"><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option></select>
+      <div class="lbl">Discriminator hidden</div>
+      <select id="cfgGANDH"><option value="64">64</option><option value="128" selected>128</option><option value="256">256</option></select>
+      <div style="font-size:.6rem;color:var(--muted);margin-top:5px;line-height:1.5">
+        G: −log D(G(z)) · D: BCE real+fake<br>Leaky ReLU · Label smoothing
+      </div>
+    </div>
+  </div>
+
+  <!-- Shared training settings -->
+  <div class="section">
+    <div class="stitle">Training</div>
+    <div class="lbl">Epochs</div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <input type="range" id="cfgEpochs" min="5" max="300" step="5" value="30"
+        oninput="document.getElementById('cfgEpochsLbl').textContent=this.value">
+      <span id="cfgEpochsLbl" style="color:var(--a1);font-size:.7rem;min-width:28px">30</span>
+    </div>
+    <div class="lbl">Batch size</div>
+    <select id="cfgBatch">
+      <option value="1">1</option>
+      <option value="4">4 — large images</option>
+      <option value="8">8</option>
+      <option value="16">16</option>
+      <option value="32" selected>32</option>
+      <option value="64">64</option>
+    </select>
+    <div class="lbl">Learning rate</div>
+    <select id="cfgLR">
+      <option value="0.0001">0.0001 — slow</option>
+      <option value="0.0003">0.0003</option>
+      <option value="0.001" selected>0.001 — default</option>
+      <option value="0.003">0.003 — fast</option>
+      <option value="0.01">0.01 — aggressive</option>
+    </select>
+    <div class="lbl">Validation split</div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <input type="range" id="cfgValSplit" min="0" max="0.3" step="0.05" value="0.15"
+        oninput="document.getElementById('cfgValLbl').textContent=Math.round(parseFloat(this.value)*100)+'%'">
+      <span id="cfgValLbl" style="color:var(--a1);font-size:.7rem;min-width:28px">15%</span>
+    </div>
+    <div class="lbl">Data augmentation</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:3px">
+      <label style="font-size:.65rem;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="augFlipH" checked> Flip H</label>
+      <label style="font-size:.65rem;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="augFlipV"> Flip V</label>
+      <label style="font-size:.65rem;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="augNoise" checked> Noise</label>
+    </div>
+    <div style="display:flex;gap:4px;margin-top:10px">
+      <button class="pri" style="flex:1" id="btnTrain" onclick="startTraining()" disabled>▶ Train</button>
+      <button id="btnStop" onclick="stopTraining()" disabled style="border-color:var(--a2);color:var(--a2)">■ Stop</button>
+    </div>
+    <div id="buildMsg" style="font-size:.63rem;color:var(--muted);margin-top:5px"></div>
+  </div>
+
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+// ════ globals ════
+// Pure JS neural network — no external ML library needed
+let trainedNet=null;  // classifier weights
+let trainedGen=null;  // MLP generator weights
+let trainedDDPM=null; // DDPM weights + schedule
+let trainedGAN=null;  // GAN generator weights
+let currentGenModel='mlp'; // which gen model to train/use
+let dsImages=[], dsLabels=[], dsClasses=[], dsW=32, dsH=32, dsChannels=3;
+let trainMode='classify';
+let isTraining=false, stopFlag=false;
+let lossHistory=[], accHistory=[], valAccHistory=[];
+let trainWorker=null;
+
+// ════ Init ════
+window.addEventListener('load',()=>{
+  const el=document.getElementById('hdrStatus');
+  el.classList.remove('pulsing');
+  el.style.color='var(--a1)';
+  el.textContent='Pure JS engine ready';
+  document.getElementById('btnTrain').disabled=false;
+  log('info','Pure JS neural network engine — no GPU library needed');
+});
+
+// ════ Logging ════
+function log(type, msg){
+  const el=document.getElementById('trainLog');
+  const d=document.createElement('div');
+  d.className=type; d.textContent='› '+msg;
+  el.appendChild(d); el.scrollTop=el.scrollHeight;
+}
+
+// ════ Drag & Drop ════
+function dzOver(e){ e.preventDefault(); document.getElementById('dropZone').classList.add('over'); }
+function dzLeave(){ document.getElementById('dropZone').classList.remove('over'); }
+function dzDrop(e){ e.preventDefault(); dzLeave(); if(e.dataTransfer.files[0]) loadZip(e.dataTransfer.files[0]); }
+
+// ════ Load ZIP ════
+async function loadZip(file){
+  setLoadMsg('Reading ZIP: '+file.name+'…'); showLoadProg(0.05);
+  log('info','Opening ZIP: '+file.name+' ('+Math.round(file.size/1024)+'KB)');
+  try{
+    const buf=await file.arrayBuffer();
+    const zip=await JSZip.loadAsync(buf);
+    const keys=Object.keys(zip.files);
+    log('info','ZIP contains '+keys.length+' entries');
+    await parseZip(zip);
+  }catch(e){
+    setLoadMsg('Error: '+e.message,'err');
+    log('err','ZIP error: '+e.message);
+    console.error(e);
+    hideLoadProg();
+  }
+}
+
+// ════ Load from HuggingFace ════
+async function loadFromHF(){
+  const repo=document.getElementById('hfUrl').value.trim();
+  if(!repo){ setLoadMsg('Enter a repo name','warn'); return; }
+  setLoadMsg('Fetching dataset info from HuggingFace…'); showLoadProg(0.05);
+  try{
+    // Fetch the file list via HF API
+    const apiUrl=`https://huggingface.co/api/datasets/${repo}/tree/main`;
+    const r=await fetch(apiUrl);
+    if(!r.ok) throw new Error('Repo not found or private ('+r.status+')');
+    const tree=await r.json();
+
+    // Find all image files and metadata.jsonl files
+    const imageFiles=tree.filter(f=>f.type==='file'&&/\.(png|jpg|jpeg|webp)$/i.test(f.path));
+    const metaFiles=tree.filter(f=>f.type==='file'&&f.path.endsWith('metadata.jsonl'));
+
+    if(!imageFiles.length) throw new Error('No image files found in repo');
+
+    setLoadMsg(`Found ${imageFiles.length} images, loading…`); showLoadProg(0.15);
+
+    // Load metadata
+    const metaMap={};
+    for(const mf of metaFiles){
+      const split=mf.path.split('/')[0];
+      const url=`https://huggingface.co/datasets/${repo}/resolve/main/${mf.path}`;
+      const resp=await fetch(url);
+      const text=await resp.text();
+      text.trim().split('\n').forEach(line=>{
+        try{
+          const j=JSON.parse(line);
+          metaMap[split+'/'+j.file_name]=j;
+        }catch(e){}
+      });
+    }
+
+    // Load images (limit to 500 for browser memory)
+    const toLoad=imageFiles.slice(0,500);
+    const rawImages=[]; const rawLabels=[];
+    for(let i=0;i<toLoad.length;i++){
+      const f=toLoad[i];
+      const pct=0.15+((i/toLoad.length)*0.8);
+      showLoadProg(pct);
+      setLoadMsg(`Loading image ${i+1}/${toLoad.length}…`);
+      const url=`https://huggingface.co/datasets/${repo}/resolve/main/${f.path}`;
+      try{
+        const img=await loadImageFromURL(url);
+        rawImages.push(img);
+        const meta=metaMap[f.path];
+        rawLabels.push(meta?.label||f.path.split('/')[0]);
+      }catch(e){ console.warn('Skip',f.path,e); }
+    }
+
+    await finaliseDataset(rawImages, rawLabels);
+    showLoadProg(1); setLoadMsg(`Loaded ${rawImages.length} images from ${repo}`);
+    setTimeout(hideLoadProg, 1200);
+
+  }catch(e){ setLoadMsg('Error: '+e.message,'err'); hideLoadProg(); console.error(e); }
+}
+
+function loadImageFromURL(url){
+  // Used for HF fetch path only (not ZIP)
+  return new Promise((res,rej)=>{
+    const img=new Image(); img.crossOrigin='anonymous';
+    img.onload=()=>res(img);
+    img.onerror=()=>rej(new Error('Failed: '+url));
+    img.src=url;
+  });
+}
+
+// ════ Parse ZIP ════
+async function parseZip(zip){
+  const files=Object.keys(zip.files);
+  console.log('[ZIP] All files:', files);
+
+  const imgFiles=files.filter(f=>!zip.files[f].dir&&/\.(png|jpg|jpeg|webp)$/i.test(f));
+  const metaFiles=files.filter(f=>f.endsWith('metadata.jsonl'));
+
+  console.log('[ZIP] Images found:', imgFiles.length, imgFiles.slice(0,5));
+  console.log('[ZIP] Metadata files:', metaFiles);
+
+  if(!imgFiles.length){
+    setLoadMsg('No images found in ZIP. Expected PNG/JPG files inside split folders.','warn');
+    return;
+  }
+
+  setLoadMsg(`Found ${imgFiles.length} images, ${metaFiles.length} metadata file(s)…`);
+  showLoadProg(0.1);
+
+  // Parse ALL metadata.jsonl files — try every key variant
+  const metaMap={};
+  for(const mf of metaFiles){
+    console.log('[ZIP] Parsing metadata:', mf);
+    const text=await zip.files[mf].async('string');
+    const lines=text.trim().split('\n');
+    console.log('[ZIP] Metadata lines:', lines.length, lines[0]);
+    const folder=mf.includes('/')?mf.substring(0,mf.lastIndexOf('/')):'';
+    lines.forEach(line=>{
+      if(!line.trim()) return;
+      try{
+        const j=JSON.parse(line);
+        const fname=j.file_name;
+        if(!fname) return;
+        // store under multiple key variants so we always find it
+        metaMap[fname]=j;                                    // bare: "cat_0000.png"
+        if(folder) metaMap[folder+'/'+fname]=j;              // "train/cat_0000.png"
+        metaMap[mf.replace('metadata.jsonl','')+fname]=j;   // full path prefix
+      }catch(e){ console.warn('[ZIP] Bad metadata line:', line, e); }
+    });
+  }
+  console.log('[ZIP] metaMap keys sample:', Object.keys(metaMap).slice(0,6));
+
+  const rawImages=[]; const rawLabels=[];
+  const toLoad=imgFiles.slice(0,500);
+  let skipped=0;
+
+  for(let i=0;i<toLoad.length;i++){
+    const path=toLoad[i];
+    const pct=0.1+((i/toLoad.length)*0.85);
+    showLoadProg(pct);
+    if(i%5===0) setLoadMsg(`Loading ${i+1}/${toLoad.length}…`);
+    try{
+      const blob=await zip.files[path].async('blob');
+      // createImageBitmap works directly on Blob — no blob: URLs needed, sandbox-safe
+      const bmp=await createImageBitmap(blob);
+
+      // Try every key variant to find metadata
+      const parts=path.split('/');
+      const fname=parts[parts.length-1];
+      const split=parts[0];
+      // Also try path relative to the metadata file's folder (strip root prefix)
+      const metaFolder=metaFiles.length>0?metaFiles[0].substring(0,metaFiles[0].lastIndexOf('/')+1):'';
+      const relPath=metaFolder&&path.startsWith(metaFolder)?path.slice(metaFolder.length):path;
+      const meta=metaMap[path]||metaMap[fname]||metaMap[split+'/'+fname]||metaMap[relPath];
+
+      let label='unknown';
+      if(meta?.label) label=meta.label;
+      else if(parts.length>=2) label=split; // fall back to folder name as class
+
+      rawImages.push(bmp);
+      rawLabels.push(label);
+    }catch(e){ skipped++; console.warn('[ZIP] Skip',path,e.message); }
+  }
+
+  console.log('[ZIP] Loaded:', rawImages.length, 'skipped:', skipped);
+  console.log('[ZIP] Label sample:', rawLabels.slice(0,8));
+
+  if(!rawImages.length){
+    setLoadMsg('Images found in ZIP but none could be decoded. Check the console.','err');
+    hideLoadProg();
+    return;
+  }
+
+  await finaliseDataset(rawImages, rawLabels);
+  showLoadProg(1);
+  setLoadMsg(`Loaded ${rawImages.length} images, ${[...new Set(rawLabels)].length} classes${skipped?' ('+skipped+' skipped)':''}`);
+  setTimeout(hideLoadProg,1500);
+}
+
+// ════ Finalise dataset ════
+async function finaliseDataset(rawImages, rawLabels){
+  if(!rawImages.length){
+    setLoadMsg('No images to process','warn');
+    return;
+  }
+
+  // ImageBitmap (from createImageBitmap) has .width/.height directly
+  dsW=Math.min(1024, rawImages[0].width||32);
+  dsH=Math.min(1024, rawImages[0].height||32);
+  console.log('[DS] Image size:', dsW+'×'+dsH);
+  // Warn if large
+  const warn=document.getElementById('sizeWarning');
+  if(warn) warn.style.display=dsW>128||dsH>128?'block':'none';
+
+  dsClasses=[...new Set(rawLabels)].sort();
+  dsImages=[]; dsLabels=[];
+
+  const offscreen=document.createElement('canvas');
+  offscreen.width=dsW; offscreen.height=dsH;
+  const oc=offscreen.getContext('2d', {willReadFrequently:true});
+
+  for(let i=0;i<rawImages.length;i++){
+    oc.clearRect(0,0,dsW,dsH);
+    oc.drawImage(rawImages[i],0,0,dsW,dsH);
+    const px=oc.getImageData(0,0,dsW,dsH).data;
+    // Store as RGB float32 (3 channels) — grayscale mode converts at tensor-build time
+    const arr=new Float32Array(dsW*dsH*3);
+    for(let j=0;j<dsW*dsH;j++){
+      arr[j*3]  =px[j*4]  /255;
+      arr[j*3+1]=px[j*4+1]/255;
+      arr[j*3+2]=px[j*4+2]/255;
+    }
+    dsImages.push(arr);
+    dsLabels.push(dsClasses.indexOf(rawLabels[i]));
+  }
+
+  console.log('[DS] Classes:', dsClasses);
+  renderDatasetUI();
+  document.getElementById('btnTrain').disabled=false;
+  log('info',`Dataset ready: ${dsImages.length} images, ${dsClasses.length} classes [${dsClasses.join(', ')}], ${dsW}×${dsH}px`);
+}
+
+// ════ Render dataset UI ════
+function renderDatasetUI(){
+  // Stats
+  const classCounts={};
+  dsLabels.forEach(l=>classCounts[dsClasses[l]]=(classCounts[dsClasses[l]]||0)+1);
+  const statsEl=document.getElementById('dsStats');
+  statsEl.innerHTML=`
+    <div class="stat"><div class="stat-val">${dsImages.length}</div><div class="stat-lbl">images</div></div>
+    <div class="stat"><div class="stat-val">${dsClasses.length}</div><div class="stat-lbl">classes</div></div>
+    <div class="stat"><div class="stat-val">${dsW}×${dsH}</div><div class="stat-lbl">size</div></div>`;
+  document.getElementById('dsCountBadge').textContent=dsImages.length;
+
+  // Class chips
+  const chips=document.getElementById('classChips');
+  chips.innerHTML='';
+  dsClasses.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='chip on'; d.textContent=`${c} (${classCounts[c]||0})`;
+    chips.appendChild(d);
+  });
+
+  // Thumbnail grid (show up to 80) — always render at 44×44 display size
+  const THUMB=44;
+  const grid=document.getElementById('dsGrid'); grid.innerHTML='';
+  const show=Math.min(80,dsImages.length);
+  for(let i=0;i<show;i++){
+    // Draw full-res into a temp canvas, then draw that into a 44px thumbnail
+    const full=document.createElement('canvas'); full.width=dsW; full.height=dsH;
+    const fc=full.getContext('2d');
+    const id=fc.createImageData(dsW,dsH);
+    for(let j=0;j<dsW*dsH;j++){
+      id.data[j*4]  =Math.round(dsImages[i][j*3]  *255);
+      id.data[j*4+1]=Math.round(dsImages[i][j*3+1]*255);
+      id.data[j*4+2]=Math.round(dsImages[i][j*3+2]*255);
+      id.data[j*4+3]=255;
+    }
+    fc.putImageData(id,0,0);
+
+    const c=document.createElement('canvas'); c.width=THUMB; c.height=THUMB;
+    const cx=c.getContext('2d');
+    cx.imageSmoothingEnabled=false;
+    cx.drawImage(full,0,0,THUMB,THUMB);
+    c.style.width=THUMB+'px'; c.style.height=THUMB+'px';
+    c.style.imageRendering='pixelated';
+
+    const wrap=document.createElement('div'); wrap.className='ds-thumb';
+    wrap.style.width=THUMB+'px'; wrap.style.height=(THUMB+12)+'px';
+    wrap.appendChild(c);
+    const lbl=document.createElement('div'); lbl.className='dt-lbl';
+    lbl.textContent=dsClasses[dsLabels[i]]||'?';
+    wrap.appendChild(lbl);
+    grid.appendChild(wrap);
+  }
+}
+
+
+// ════ Pure JS Neural Network ════
+// MLP with Adam optimizer, trained in a Web Worker.
+// No external libraries, no GPU, works everywhere.
+
+
+
+// Worker source — stored as a comment-wrapped string to avoid backtick issues
+const WORKER_SRC = (function(){/*WORKER_START
+'use strict';
+let stopFlag=false;
+function post(type,d){self.postMessage(Object.assign({type},d));}
+
+function randn(){
+  let u=0,v=0;
+  while(!u)u=Math.random();while(!v)v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+function applyAct(z,fn){
+  if(fn==='relu')return z>0?z:0;
+  if(fn==='lrelu')return z>0?z:0.01*z;
+  if(fn==='sigmoid')return 1/(1+Math.exp(-z));
+  if(fn==='tanh')return Math.tanh(z);
+  if(fn==='elu')return z>=0?z:Math.exp(z)-1;
+  return z;
+}
+function applyActD(z,fn){
+  if(fn==='relu')return z>0?1:0;
+  if(fn==='lrelu')return z>0?1:0.01;
+  if(fn==='sigmoid'){const s=1/(1+Math.exp(-z));return s*(1-s);}
+  if(fn==='tanh'){const t=Math.tanh(z);return 1-t*t;}
+  if(fn==='elu')return z>=0?1:Math.exp(z);
+  return 1;
+}
+function softmax(z){
+  const m=Math.max(...z),e=z.map(x=>Math.exp(x-m)),s=e.reduce((a,b)=>a+b,0);
+  return e.map(x=>x/s);
+}
+
+function makeDense(inSize,outSize,act){
+  const s=Math.sqrt(2/inSize);
+  return {inSize,outSize,act,
+    W:Float32Array.from({length:inSize*outSize},()=>randn()*s),
+    b:new Float32Array(outSize),
+    mW:new Float32Array(inSize*outSize),mb:new Float32Array(outSize),
+    vW:new Float32Array(inSize*outSize),vb:new Float32Array(outSize)};
+}
+
+function forwardLayer(l,inp){
+  const z=new Float32Array(l.outSize);
+  for(let o=0;o<l.outSize;o++){
+    let s=l.b[o];
+    for(let i=0;i<l.inSize;i++) s+=inp[i]*l.W[o*l.inSize+i];
+    z[o]=s;
+  }
+  const a=l.act==='softmax'?new Float32Array(softmax(Array.from(z))):z.map(x=>applyAct(x,l.act));
+  l._inp=inp; l._z=z;
+  return a;
+}
+
+function backwardLayer(l,dA,lr,t,wd){
+  const b1=0.9,b2=0.999,eps=1e-8;
+  const dZ=new Float32Array(l.outSize);
+  if(l.act==='softmax'){
+    for(let o=0;o<l.outSize;o++) dZ[o]=dA[o];
+  } else {
+    for(let o=0;o<l.outSize;o++) dZ[o]=dA[o]*applyActD(l._z[o],l.act);
+  }
+  const dInp=new Float32Array(l.inSize);
+  for(let i=0;i<l.inSize;i++){let g=0;for(let o=0;o<l.outSize;o++) g+=dZ[o]*l.W[o*l.inSize+i];dInp[i]=g;}
+  for(let o=0;o<l.outSize;o++){
+    for(let i=0;i<l.inSize;i++){
+      const idx=o*l.inSize+i,g=dZ[o]*l._inp[i]+wd*l.W[idx];
+      l.mW[idx]=b1*l.mW[idx]+(1-b1)*g;l.vW[idx]=b2*l.vW[idx]+(1-b2)*g*g;
+      const mh=l.mW[idx]/(1-Math.pow(b1,t)),vh=l.vW[idx]/(1-Math.pow(b2,t));
+      l.W[idx]-=lr*mh/(Math.sqrt(vh)+eps);
+    }
+    const g=dZ[o];
+    l.mb[o]=b1*l.mb[o]+(1-b1)*g;l.vb[o]=b2*l.vb[o]+(1-b2)*g*g;
+    const mh=l.mb[o]/(1-Math.pow(b1,t)),vh=l.vb[o]/(1-Math.pow(b2,t));
+    l.b[o]-=lr*mh/(Math.sqrt(vh)+eps);
+  }
+  return dInp;
+}
+
+function buildNet(inputSize,hiddenSizes,hiddenAct,nClasses){
+  const layers=[];let prev=inputSize;
+  hiddenSizes.forEach(h=>{layers.push(makeDense(prev,h,hiddenAct));prev=h;});
+  layers.push(makeDense(prev,nClasses,'softmax'));
+  return layers;
+}
+
+function forward(layers,inp){let x=inp;for(const l of layers) x=forwardLayer(l,x);return x;}
+
+function prepInput(flat,dsH,dsW,ch,fH,fV,noise){
+  const out=new Float32Array(dsH*dsW*ch);
+  for(let y=0;y<dsH;y++){const sy=fV?dsH-1-y:y;
+    for(let x=0;x<dsW;x++){const sx=fH?dsW-1-x:x;
+      const src=(sy*dsW+sx)*3;
+      if(ch===3){const dst=(y*dsW+x)*3;out[dst]=flat[src];out[dst+1]=flat[src+1];out[dst+2]=flat[src+2];}
+      else out[y*dsW+x]=flat[src]*0.299+flat[src+1]*0.587+flat[src+2]*0.114;
+    }
+  }
+  if(noise){for(let i=0;i<out.length;i++) out[i]=Math.max(0,Math.min(1,out[i]+(Math.random()-0.5)*0.04));}
+  return out;
+}
+
+self.onmessage=async function(e){
+  const msg=e.data;
+  if(msg.type==='stop'){stopFlag=true;return;}
+  if(msg.type!=='train')return;
+  stopFlag=false;
+
+  const {images,labels,dsH,dsW,dsChannels,dsClasses,trainIdx,valIdx,cfg}=msg;
+  const {epochs,batchSize,lr,hiddenUnits,hiddenLayers,denseAct,augFlipH,augFlipV,augNoise}=cfg;
+  const nClasses=dsClasses.length,inputSize=dsH*dsW*dsChannels;
+  const sizes=Array.from({length:hiddenLayers},()=>hiddenUnits);
+  const net=buildNet(inputSize,sizes,denseAct,nClasses);
+  const params=net.reduce((s,l)=>s+l.inSize*l.outSize+l.outSize,0);
+  post('log',{level:'info',text:'MLP ready — input:'+inputSize+' hidden:'+hiddenLayers+'x'+hiddenUnits+' out:'+nClasses+' params:'+params.toLocaleString()});
+  post('epochBegin',{ep:0,epochs});
+
+  const totalBatches=Math.ceil(trainIdx.length/batchSize);
+  let t=1;
+  const wd=1e-4;
+
+  for(let ep=0;ep<epochs&&!stopFlag;ep++){
+    post('epochBegin',{ep,epochs});
+    const order=[...trainIdx];
+    for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
+    let epLoss=0,epAcc=0,nb=0;
+
+    for(let b=0;b<order.length;b+=batchSize){
+      if(stopFlag)break;
+      const batch=order.slice(b,b+batchSize);
+      let bLoss=0,bAcc=0;
+      for(const idx of batch){
+        const inp=prepInput(images[idx],dsH,dsW,dsChannels,augFlipH&&Math.random()<0.5,augFlipV&&Math.random()<0.5,augNoise);
+        const probs=forward(net,inp);
+        const label=labels[idx];
+        bLoss+=-Math.log(Math.max(probs[label],1e-15));
+        if(Array.from(probs).indexOf(Math.max(...probs))===label) bAcc++;
+        // backward
+        const dA=new Float32Array(nClasses);
+        for(let c=0;c<nClasses;c++) dA[c]=probs[c]-(c===label?1:0);
+        let grad=dA;
+        for(let i=net.length-1;i>=0;i--) grad=backwardLayer(net[i],grad,lr,t,wd);
+        t++;
+      }
+      bLoss/=batch.length; bAcc/=batch.length;
+      epLoss+=bLoss; epAcc+=bAcc; nb++;
+      post('batch',{ep,epochs,batch:Math.floor(b/batchSize)+1,totalBatches,bLoss,bAcc});
+      await new Promise(r=>setTimeout(r,0));
+    }
+    if(stopFlag)break;
+    epLoss/=nb; epAcc/=nb;
+
+    let vLoss=0,vAcc=0;
+    for(const idx of valIdx){
+      const inp=prepInput(images[idx],dsH,dsW,dsChannels,false,false,false);
+      const probs=forward(net,inp);
+      const label=labels[idx];
+      vLoss+=-Math.log(Math.max(probs[label],1e-15));
+      if(Array.from(probs).indexOf(Math.max(...probs))===label) vAcc++;
+    }
+    vLoss/=Math.max(1,valIdx.length); vAcc/=Math.max(1,valIdx.length);
+    post('epoch',{ep,epochs,epochLoss:epLoss,epochAcc:epAcc,valLoss:vLoss,valAcc:vAcc});
+    await new Promise(r=>setTimeout(r,0));
+  }
+
+  const weights=net.map(l=>({inSize:l.inSize,outSize:l.outSize,act:l.act,W:Array.from(l.W),b:Array.from(l.b)}));
+  post('done',{stopped:stopFlag,weights,dsChannels,dsH,dsW,dsClasses,mode:'classify'});
+};
+WORKER_END*/}).toString();
+
+// ── Generator worker (conditional decoder: [one-hot+noise] → pixels) ──────
+const GEN_WORKER_SRC = (function(){/*GEN_START
+'use strict';
+let stopFlag=false;
+function post(type,d){self.postMessage(Object.assign({type},d));}
+function randn(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function applyAct(z,fn){if(fn==='relu')return z>0?z:0;if(fn==='lrelu')return z>0?z:0.01*z;if(fn==='sigmoid')return 1/(1+Math.exp(-z));if(fn==='tanh')return Math.tanh(z);if(fn==='elu')return z>=0?z:Math.exp(z)-1;return z;}
+function applyActD(z,fn){if(fn==='relu')return z>0?1:0;if(fn==='lrelu')return z>0?1:0.01;if(fn==='sigmoid'){const s=1/(1+Math.exp(-z));return s*(1-s);}if(fn==='tanh'){const t=Math.tanh(z);return 1-t*t;}if(fn==='elu')return z>=0?1:Math.exp(z);return 1;}
+
+function makeDense(inSize,outSize,act){
+  const s=Math.sqrt(2/inSize);
+  return {inSize,outSize,act,W:Float32Array.from({length:inSize*outSize},()=>randn()*s),b:new Float32Array(outSize),mW:new Float32Array(inSize*outSize),mb:new Float32Array(outSize),vW:new Float32Array(inSize*outSize),vb:new Float32Array(outSize)};
+}
+function forwardLayer(l,inp){
+  const z=new Float32Array(l.outSize);
+  for(let o=0;o<l.outSize;o++){let s=l.b[o];for(let i=0;i<l.inSize;i++) s+=inp[i]*l.W[o*l.inSize+i];z[o]=s;}
+  const a=z.map(x=>applyAct(x,l.act));
+  l._inp=inp;l._z=z;return a;
+}
+function backwardLayer(l,dA,lr,t,wd){
+  const b1=0.9,b2=0.999,eps=1e-8;
+  const dZ=new Float32Array(l.outSize);
+  for(let o=0;o<l.outSize;o++) dZ[o]=dA[o]*applyActD(l._z[o],l.act);
+  const dInp=new Float32Array(l.inSize);
+  for(let i=0;i<l.inSize;i++){let g=0;for(let o=0;o<l.outSize;o++) g+=dZ[o]*l.W[o*l.inSize+i];dInp[i]=g;}
+  for(let o=0;o<l.outSize;o++){
+    for(let i=0;i<l.inSize;i++){
+      const idx=o*l.inSize+i,g=dZ[o]*l._inp[i]+wd*l.W[idx];
+      l.mW[idx]=0.9*l.mW[idx]+(1-0.9)*g;l.vW[idx]=b2*l.vW[idx]+(1-b2)*g*g;
+      const mh=l.mW[idx]/(1-Math.pow(b1,t)),vh=l.vW[idx]/(1-Math.pow(b2,t));
+      l.W[idx]-=lr*mh/(Math.sqrt(vh)+eps);
+    }
+    const g=dZ[o];
+    l.mb[o]=b1*l.mb[o]+(1-b1)*g;l.vb[o]=b2*l.vb[o]+(1-b2)*g*g;
+    const mh=l.mb[o]/(1-Math.pow(b1,t)),vh=l.vb[o]/(1-Math.pow(b2,t));
+    l.b[o]-=lr*mh/(Math.sqrt(vh)+eps);
+  }
+  return dInp;
+}
+function forward(layers,inp){let x=inp;for(const l of layers) x=forwardLayer(l,x);return x;}
+function sigmoid(x){return 1/(1+Math.exp(-x));}
+
+self.onmessage=async function(e){
+  const msg=e.data;
+  if(msg.type==='stop'){stopFlag=true;return;}
+  if(msg.type!=='train')return;
+  stopFlag=false;
+  const {images,labels,dsH,dsW,dsChannels,dsClasses,trainIdx,valIdx,cfg}=msg;
+  const {epochs,batchSize,lr,latentDim,hiddenLayers,hiddenUnits,genAct}=cfg;
+  const nClasses=dsClasses.length;
+  const inputSize=nClasses+latentDim;
+  const outputSize=dsH*dsW*dsChannels;
+
+  // Build decoder: [nClasses + latentDim] -> hidden layers -> [outputSize] sigmoid
+  const layers=[];let prev=inputSize;
+  for(let i=0;i<hiddenLayers;i++){layers.push(makeDense(prev,hiddenUnits,genAct));prev=hiddenUnits;}
+  layers.push(makeDense(prev,outputSize,'sigmoid'));
+
+  const params=layers.reduce((s,l)=>s+l.inSize*l.outSize+l.outSize,0);
+  post('log',{level:'info',text:'Generator: ['+nClasses+' classes + '+latentDim+' noise] -> '+outputSize+' pixels, params: '+params.toLocaleString()});
+  post('epochBegin',{ep:0,epochs});
+
+  const totalBatches=Math.ceil(trainIdx.length/batchSize);
+  let t=1; const wd=1e-5;
+
+  for(let ep=0;ep<epochs&&!stopFlag;ep++){
+    post('epochBegin',{ep,epochs});
+    const order=[...trainIdx];
+    for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
+    let epLoss=0,nb=0;
+
+    for(let b=0;b<order.length;b+=batchSize){
+      if(stopFlag)break;
+      const batch=order.slice(b,b+batchSize);
+      let bLoss=0;
+      for(const idx of batch){
+        // Input: one-hot class + random noise
+        const inp=new Float32Array(inputSize);
+        inp[labels[idx]]=1; // one-hot
+        for(let k=nClasses;k<inputSize;k++) inp[k]=randn()*0.5;
+
+        // Target: actual image pixels
+        const raw=images[idx]; // Float32Array RGB
+        const target=new Float32Array(outputSize);
+        if(dsChannels===3){for(let k=0;k<outputSize;k++) target[k]=raw[k];}
+        else{for(let k=0;k<dsH*dsW;k++) target[k]=raw[k*3]*0.299+raw[k*3+1]*0.587+raw[k*3+2]*0.114;}
+
+        const out=forward(layers,inp);
+        // MSE loss + backward
+        const dOut=new Float32Array(outputSize);
+        for(let k=0;k<outputSize;k++){
+          const err=out[k]-target[k];
+          bLoss+=err*err;
+          // sigmoid output: dL/dz = err * sigmoid'(z)
+          dOut[k]=2*err*out[k]*(1-out[k]);
+        }
+        bLoss/=outputSize;
+        let grad=dOut;
+        for(let i=layers.length-1;i>=0;i--) grad=backwardLayer(layers[i],grad,lr,t,wd);
+        t++;
+      }
+      bLoss/=batch.length;
+      epLoss+=bLoss; nb++;
+      post('batch',{ep,epochs,batch:Math.floor(b/batchSize)+1,totalBatches,bLoss,bAcc:0});
+      await new Promise(r=>setTimeout(r,0));
+    }
+    if(stopFlag)break;
+    epLoss/=nb;
+
+    // Val loss
+    let vLoss=0;
+    for(const idx of valIdx){
+      const inp=new Float32Array(inputSize);
+      inp[labels[idx]]=1;
+      for(let k=nClasses;k<inputSize;k++) inp[k]=0; // zero noise for val
+      const out=forward(layers,inp);
+      const raw=images[idx];
+      let l=0;
+      if(dsChannels===3){for(let k=0;k<outputSize;k++){const e=out[k]-raw[k];l+=e*e;}}
+      else{for(let k=0;k<dsH*dsW;k++){const t2=raw[k*3]*0.299+raw[k*3+1]*0.587+raw[k*3+2]*0.114;const e=out[k]-t2;l+=e*e;}}
+      vLoss+=l/outputSize;
+    }
+    vLoss/=Math.max(1,valIdx.length);
+    post('epoch',{ep,epochs,epochLoss:epLoss,epochAcc:0,valLoss:vLoss,valAcc:0,mode:'generate'});
+    await new Promise(r=>setTimeout(r,0));
+  }
+  const weights=layers.map(l=>({inSize:l.inSize,outSize:l.outSize,act:l.act,W:Array.from(l.W),b:Array.from(l.b)}));
+  post('done',{stopped:stopFlag,weights,dsChannels,dsH,dsW,dsClasses,nClasses,latentDim,mode:'generate'});
+};
+GEN_END*/}).toString();
+const GEN_WORKER_CODE = GEN_WORKER_SRC.slice(GEN_WORKER_SRC.indexOf('GEN_START')+9, GEN_WORKER_SRC.lastIndexOf('GEN_END'));
+
+// ════════════════════════════════════════════════════
+//  DDPM WORKER — Denoising Diffusion Probabilistic Model
+//  Sinusoidal time embedding, U-Net MLP, linear β schedule
+// ════════════════════════════════════════════════════
+const DDPM_WORKER_SRC=(function(){/*DDPM_S
+'use strict';
+let stopFlag=false;
+function post(t,d){self.postMessage(Object.assign({type:t},d));}
+function randn(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function timeEmb(t,dim){const h=dim>>1,e=new Float32Array(dim);for(let i=0;i<h;i++){const f=Math.exp(-Math.log(10000)*i/h);e[i]=Math.sin(t*f);e[i+h]=Math.cos(t*f);}return e;}
+function act(z,fn){if(fn==='silu')return z*(1/(1+Math.exp(-z)));if(fn==='relu')return z>0?z:0;if(fn==='lrelu')return z>0?z:0.01*z;return z;}
+function actD(z,fn){if(fn==='silu'){const s=1/(1+Math.exp(-z));return s*(1+z*(1-s));}if(fn==='relu')return z>0?1:0;if(fn==='lrelu')return z>0?1:0.01;return 1;}
+function makeDense(i,o,a){const s=Math.sqrt(2/i);return{inSize:i,outSize:o,act:a,W:Float32Array.from({length:i*o},()=>randn()*s),b:new Float32Array(o),mW:new Float32Array(i*o),mb:new Float32Array(o),vW:new Float32Array(i*o),vb:new Float32Array(o)};}
+function fwd(l,x){const z=new Float32Array(l.outSize);for(let o=0;o<l.outSize;o++){let s=l.b[o];for(let i=0;i<l.inSize;i++)s+=x[i]*l.W[o*l.inSize+i];z[o]=s;}const a=l.act==='linear'?z:z.map(v=>act(v,l.act));l._x=x;l._z=z;return a;}
+function bwd(l,dA,lr,t,isLin){
+  const b1=0.9,b2=0.999,e=1e-8,bt=b1**t,vt=b2**t;
+  const dZ=new Float32Array(l.outSize);
+  for(let o=0;o<l.outSize;o++)dZ[o]=isLin?dA[o]:dA[o]*actD(l._z[o],l.act);
+  const dX=new Float32Array(l.inSize);
+  for(let i=0;i<l.inSize;i++){let g=0;for(let o=0;o<l.outSize;o++)g+=dZ[o]*l.W[o*l.inSize+i];dX[i]=g;}
+  for(let o=0;o<l.outSize;o++){for(let i=0;i<l.inSize;i++){const idx=o*l.inSize+i,g=dZ[o]*l._x[i];l.mW[idx]=b1*l.mW[idx]+(1-b1)*g;l.vW[idx]=b2*l.vW[idx]+(1-b2)*g*g;l.W[idx]-=lr*(l.mW[idx]/(1-bt))/(Math.sqrt(l.vW[idx]/(1-vt))+e);}const g=dZ[o];l.mb[o]=b1*l.mb[o]+(1-b1)*g;l.vb[o]=b2*l.vb[o]+(1-b2)*g*g;l.b[o]-=lr*(l.mb[o]/(1-bt))/(Math.sqrt(l.vb[o]/(1-vt))+e);}
+  return dX;
+}
+function makeSchedule(T){const beta=new Float32Array(T),alpha=new Float32Array(T),aBar=new Float32Array(T);let ab=1;for(let t=0;t<T;t++){beta[t]=1e-4+(0.02-1e-4)*t/(T-1);alpha[t]=1-beta[t];ab*=alpha[t];aBar[t]=ab;}return{beta,alpha,alphaBar:aBar};}
+function buildUNet(imgSz,nC,h,depth,tDim){
+  const enc=[],sizes=Array.from({length:depth},(_,i)=>h*(1<<i));let prev=imgSz+tDim+(nC>0?nC:0);
+  for(const sz of sizes){enc.push({down:makeDense(prev,sz,'silu'),skip:sz});prev=sz;}
+  const bottleneck=makeDense(prev,prev,'silu');
+  const dec=[];for(let i=sizes.length-1;i>=0;i--){const sp=sizes[i];dec.push(makeDense(prev+sp,i>0?sizes[i-1]:h,'silu'));prev=i>0?sizes[i-1]:h;}
+  const out=makeDense(h,imgSz,'linear');
+  return{enc,bottleneck,dec,out,tDim,nC,h,depth,imgSz};
+}
+function unetFwd(net,x,tE,cond){
+  let inp=new Float32Array(x.length+tE.length+(cond?cond.length:0));inp.set(x,0);inp.set(tE,x.length);if(cond)inp.set(cond,x.length+tE.length);
+  const skips=[];let h=inp;for(const L of net.enc){h=fwd(L.down,h);skips.push(h);}
+  h=fwd(net.bottleneck,h);
+  for(let i=0;i<net.dec.length;i++){const sk=skips[net.enc.length-1-i];const cat=new Float32Array(h.length+sk.length);cat.set(h,0);cat.set(sk,h.length);h=fwd(net.dec[i],cat);}
+  return fwd(net.out,h);
+}
+function unetBwd(net,dOut,lr,t){
+  let g=bwd(net.out,dOut,lr,t,true);
+  const skGrads=[];
+  for(let i=net.dec.length-1;i>=0;i--){const gFull=bwd(net.dec[i],g,lr,t,false);const sp=net.enc[net.enc.length-1-i].skip;skGrads[net.enc.length-1-i]=gFull.slice(net.dec[i].inSize-sp);g=gFull.slice(0,net.dec[i].inSize-sp);}
+  g=bwd(net.bottleneck,g,lr,t,false);
+  for(let i=net.enc.length-1;i>=0;i--){if(skGrads[i])for(let k=0;k<Math.min(g.length,skGrads[i].length);k++)g[k]+=skGrads[i][k];g=bwd(net.enc[i].down,g,lr,t,false);}
+}
+self.onmessage=async function(e){
+  const msg=e.data;if(msg.type==='stop'){stopFlag=true;return;}if(msg.type!=='train')return;stopFlag=false;
+  const{images,labels,dsH,dsW,dsChannels,dsClasses,trainIdx,cfg}=msg;
+  const{epochs,batchSize,lr,T,hiddenSize,depth,conditioning}=cfg;
+  const nC=conditioning==='class'?dsClasses.length:0,imgSz=dsH*dsW*dsChannels,tDim=32;
+  const sched=makeSchedule(T),net=buildUNet(imgSz,nC,hiddenSize,depth,tDim);
+  const params=(()=>{let p=0;const c=l=>l.inSize*l.outSize+l.outSize;net.enc.forEach(e=>p+=c(e.down));p+=c(net.bottleneck);net.dec.forEach(d=>p+=c(d));p+=c(net.out);return p;})();
+  post('log',{level:'info',text:'DDPM U-Net T='+T+' img='+imgSz+' h='+hiddenSize+'x'+depth+' params='+params.toLocaleString()});
+  post('epochBegin',{ep:0,epochs});
+  const totalBatches=Math.ceil(trainIdx.length/batchSize);let step=1;
+  for(let ep=0;ep<epochs&&!stopFlag;ep++){
+    post('epochBegin',{ep,epochs});
+    const order=[...trainIdx];for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
+    let epL=0,nb=0;
+    for(let b=0;b<order.length;b+=batchSize){
+      if(stopFlag)break;
+      const batch=order.slice(b,b+batchSize);let bL=0;
+      for(const idx of batch){
+        const raw=images[idx];
+        const x0=new Float32Array(imgSz);
+        if(dsChannels===3)for(let k=0;k<imgSz;k++)x0[k]=raw[k]*2-1;
+        else for(let k=0;k<dsH*dsW;k++)x0[k]=(raw[k*3]*0.299+raw[k*3+1]*0.587+raw[k*3+2]*0.114)*2-1;
+        const t=Math.floor(Math.random()*T);
+        const sqAB=Math.sqrt(sched.alphaBar[t]),sq1AB=Math.sqrt(1-sched.alphaBar[t]);
+        const noise=new Float32Array(imgSz);for(let k=0;k<imgSz;k++)noise[k]=randn();
+        const xt=new Float32Array(imgSz);for(let k=0;k<imgSz;k++)xt[k]=sqAB*x0[k]+sq1AB*noise[k];
+        const tE=timeEmb(t/T,tDim);
+        const cond=nC>0?new Float32Array(nC):null;if(cond)cond[labels[idx]]=1;
+        const pred=unetFwd(net,xt,tE,cond);
+        const dOut=new Float32Array(imgSz);let loss=0;
+        for(let k=0;k<imgSz;k++){const err=pred[k]-noise[k];loss+=err*err;dOut[k]=2*err/imgSz;}
+        bL+=loss/imgSz;unetBwd(net,dOut,lr,step);step++;
+      }
+      bL/=batch.length;epL+=bL;nb++;
+      post('batch',{ep,epochs,batch:Math.floor(b/batchSize)+1,totalBatches,bLoss:bL,bAcc:0});
+      await new Promise(r=>setTimeout(r,0));
+    }
+    if(stopFlag)break;epL/=nb;
+    post('epoch',{ep,epochs,epochLoss:epL,epochAcc:0,valLoss:epL,valAcc:0,mode:'generate'});
+    await new Promise(r=>setTimeout(r,0));
+  }
+  function ser(l){return{inSize:l.inSize,outSize:l.outSize,act:l.act,W:Array.from(l.W),b:Array.from(l.b)};}
+  const netS={enc:net.enc.map(e=>({down:ser(e.down),skip:e.skip})),bottleneck:ser(net.bottleneck),dec:net.dec.map(ser),out:ser(net.out),tDim:net.tDim,nC:net.nC,h:net.h,depth:net.depth,imgSz:net.imgSz};
+  post('done',{stopped:stopFlag,net:netS,schedule:{beta:Array.from(sched.beta),alpha:Array.from(sched.alpha),alphaBar:Array.from(sched.alphaBar)},T,dsChannels,dsH,dsW,dsClasses,conditioning:cfg.conditioning,mode:'ddpm'});
+};
+DDPM_E*/}).toString();
+const DDPM_WORKER_CODE=DDPM_WORKER_SRC.slice(DDPM_WORKER_SRC.indexOf('DDPM_S')+6,DDPM_WORKER_SRC.lastIndexOf('DDPM_E'));
+
+// ════════════════════════════════════════════════════
+//  GAN WORKER — Generator vs Discriminator
+// ════════════════════════════════════════════════════
+const GAN_WORKER_SRC=(function(){/*GAN_S
+'use strict';
+let stopFlag=false;
+function post(t,d){self.postMessage(Object.assign({type:t},d));}
+function randn(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function act(z,fn){if(fn==='lrelu')return z>0?z:0.2*z;if(fn==='relu')return z>0?z:0;if(fn==='tanh')return Math.tanh(z);if(fn==='sigmoid')return 1/(1+Math.exp(-z));return z;}
+function actD(z,fn){if(fn==='lrelu')return z>0?1:0.2;if(fn==='relu')return z>0?1:0;if(fn==='tanh'){const t=Math.tanh(z);return 1-t*t;}if(fn==='sigmoid'){const s=1/(1+Math.exp(-z));return s*(1-s);}return 1;}
+function makeDense(i,o,a){const s=Math.sqrt(2/i);return{inSize:i,outSize:o,act:a,W:Float32Array.from({length:i*o},()=>randn()*s),b:new Float32Array(o),mW:new Float32Array(i*o),mb:new Float32Array(o),vW:new Float32Array(i*o),vb:new Float32Array(o)};}
+function fwd(l,x){const z=new Float32Array(l.outSize);for(let o=0;o<l.outSize;o++){let s=l.b[o];for(let i=0;i<l.inSize;i++)s+=x[i]*l.W[o*l.inSize+i];z[o]=s;}const a=l.act==='linear'?z:z.map(v=>act(v,l.act));l._x=x;l._z=z;return a;}
+function bwd(l,dA,lr,t,isLin){
+  const b1=0.9,b2=0.999,e=1e-8,bt=b1**t,vt=b2**t;
+  const dZ=new Float32Array(l.outSize);for(let o=0;o<l.outSize;o++)dZ[o]=isLin?dA[o]:dA[o]*actD(l._z[o],l.act);
+  const dX=new Float32Array(l.inSize);for(let i=0;i<l.inSize;i++){let g=0;for(let o=0;o<l.outSize;o++)g+=dZ[o]*l.W[o*l.inSize+i];dX[i]=g;}
+  for(let o=0;o<l.outSize;o++){for(let i=0;i<l.inSize;i++){const idx=o*l.inSize+i,g=dZ[o]*l._x[i];l.mW[idx]=b1*l.mW[idx]+(1-b1)*g;l.vW[idx]=b2*l.vW[idx]+(1-b2)*g*g;l.W[idx]-=lr*(l.mW[idx]/(1-bt))/(Math.sqrt(l.vW[idx]/(1-vt))+e);}const g=dZ[o];l.mb[o]=b1*l.mb[o]+(1-b1)*g;l.vb[o]=b2*l.vb[o]+(1-b2)*g*g;l.b[o]-=lr*(l.mb[o]/(1-bt))/(Math.sqrt(l.vb[o]/(1-vt))+e);}
+  return dX;
+}
+function netFwd(ls,x){let h=x;for(const l of ls)h=fwd(l,h);return h;}
+function netBwd(ls,dOut,lr,t){let g=dOut;for(let i=ls.length-1;i>=0;i--)g=bwd(ls[i],g,lr,t,i===ls.length-1&&ls[i].act==='linear');return g;}
+function bce(p,label){return-(label*Math.log(Math.max(1e-7,p))+(1-label)*Math.log(Math.max(1e-7,1-p)));}
+self.onmessage=async function(e){
+  const msg=e.data;if(msg.type==='stop'){stopFlag=true;return;}if(msg.type!=='train')return;stopFlag=false;
+  const{images,labels,dsH,dsW,dsChannels,dsClasses,trainIdx,cfg}=msg;
+  const{epochs,batchSize,lr,noiseDim,genHidden,genLayers,discHidden}=cfg;
+  const nC=dsClasses.length,imgSz=dsH*dsW*dsChannels,inSz=noiseDim+nC;
+  const G=[];let prev=inSz;for(let i=0;i<genLayers;i++){G.push(makeDense(prev,genHidden,'lrelu'));prev=genHidden;}G.push(makeDense(prev,imgSz,'tanh'));
+  const D=[];prev=imgSz+nC;for(let i=0;i<3;i++){D.push(makeDense(prev,discHidden,'lrelu'));prev=discHidden;}D.push(makeDense(prev,1,'sigmoid'));
+  post('log',{level:'info',text:'GAN G:'+G.reduce((s,l)=>s+l.inSize*l.outSize+l.outSize,0).toLocaleString()+' D:'+D.reduce((s,l)=>s+l.inSize*l.outSize+l.outSize,0).toLocaleString()});
+  post('epochBegin',{ep:0,epochs});
+  const totalBatches=Math.ceil(trainIdx.length/batchSize);let gStep=1,dStep=1;const lrD=lr*0.5;
+  for(let ep=0;ep<epochs&&!stopFlag;ep++){
+    post('epochBegin',{ep,epochs});
+    const order=[...trainIdx];for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
+    let epGL=0,epDL=0,nb=0;
+    for(let b=0;b<order.length;b+=batchSize){
+      if(stopFlag)break;
+      const batch=order.slice(b,b+batchSize);let bGL=0,bDL=0;
+      for(const idx of batch){
+        const ci=labels[idx];const oh=new Float32Array(nC);oh[ci]=1;
+        const raw=images[idx];const real=new Float32Array(imgSz);
+        if(dsChannels===3)for(let k=0;k<imgSz;k++)real[k]=raw[k]*2-1;
+        else for(let k=0;k<dsH*dsW;k++)real[k]=(raw[k*3]*0.299+raw[k*3+1]*0.587+raw[k*3+2]*0.114)*2-1;
+        // D real
+        const ri=new Float32Array(imgSz+nC);ri.set(real,0);ri.set(oh,imgSz);
+        const dr=netFwd(D,ri)[0];const drG=new Float32Array(1);drG[0]=dr-0.9;netBwd(D,drG,lrD,dStep);dStep++;bDL+=bce(dr,0.9);
+        // D fake
+        const z=new Float32Array(inSz);for(let k=0;k<noiseDim;k++)z[k]=randn();z.set(oh,noiseDim);
+        const fk=netFwd(G,z);const fi=new Float32Array(imgSz+nC);fi.set(fk,0);fi.set(oh,imgSz);
+        const df=netFwd(D,fi)[0];const dfG=new Float32Array(1);dfG[0]=df-0.1;netBwd(D,dfG,lrD,dStep);dStep++;bDL+=bce(df,0.1);
+        // G
+        const z2=new Float32Array(inSz);for(let k=0;k<noiseDim;k++)z2[k]=randn();z2.set(oh,noiseDim);
+        const fk2=netFwd(G,z2);const fi2=new Float32Array(imgSz+nC);fi2.set(fk2,0);fi2.set(oh,imgSz);
+        const df2=netFwd(D,fi2)[0];
+        let gFromD=new Float32Array(1);gFromD[0]=df2-1.0;
+        for(let i=D.length-1;i>=0;i--){const l=D[i];const dZ=new Float32Array(l.outSize);const isL=i===D.length-1;for(let o=0;o<l.outSize;o++)dZ[o]=isL?gFromD[o]*actD(l._z[o],'sigmoid'):gFromD[o]*actD(l._z[o],'lrelu');const dX=new Float32Array(l.inSize);for(let ii=0;ii<l.inSize;ii++){let g2=0;for(let o=0;o<l.outSize;o++)g2+=dZ[o]*l.W[o*l.inSize+ii];dX[ii]=g2;}gFromD=dX;}
+        const gG=new Float32Array(imgSz);for(let k=0;k<imgSz;k++)gG[k]=gFromD[k]*(1-fk2[k]*fk2[k]);
+        netBwd(G,gG,lr,gStep);gStep++;bGL+=bce(df2,1);
+      }
+      bGL/=batch.length;bDL/=batch.length;epGL+=bGL;epDL+=bDL;nb++;
+      post('batch',{ep,epochs,batch:Math.floor(b/batchSize)+1,totalBatches,bLoss:(bGL+bDL)*0.5,bAcc:0});
+      await new Promise(r=>setTimeout(r,0));
+    }
+    if(stopFlag)break;epGL/=nb;epDL/=nb;
+    post('epoch',{ep,epochs,epochLoss:epGL,epochAcc:0,valLoss:epDL,valAcc:0,mode:'generate'});
+    await new Promise(r=>setTimeout(r,0));
+  }
+  function ser(l){return{inSize:l.inSize,outSize:l.outSize,act:l.act,W:Array.from(l.W),b:Array.from(l.b)};}
+  post('done',{stopped:stopFlag,G:G.map(ser),dsChannels,dsH,dsW,dsClasses,noiseDim,nClasses:nC,mode:'gan'});
+};
+GAN_E*/}).toString();
+const GAN_WORKER_CODE=GAN_WORKER_SRC.slice(GAN_WORKER_SRC.indexOf('GAN_S')+5,GAN_WORKER_SRC.lastIndexOf('GAN_E'));
+
+// Extract classifier worker source from between WORKER_START and WORKER_END markers
+const WORKER_CODE = WORKER_SRC.slice(WORKER_SRC.indexOf('WORKER_START')+12, WORKER_SRC.lastIndexOf('WORKER_END'));
+
+function startTraining(){
+  if(!dsImages.length){log('warn','Load a dataset first');return;}
+  if(trainWorker){trainWorker.terminate();trainWorker=null;}
+
+  document.getElementById('btnTrain').disabled=true;
+  document.getElementById('btnStop').disabled=false;
+  document.getElementById('buildMsg').textContent='Starting…';
+  lossHistory=[];accHistory=[];valAccHistory=[];
+  isTraining=true; stopFlag=false;
+
+  const epochs   =+document.getElementById('cfgEpochs').value;
+  const batchSize=+document.getElementById('cfgBatch').value;
+  const valSplit =+document.getElementById('cfgValSplit').value;
+
+  const n=dsImages.length;
+  const idx=Array.from({length:n},(_,i)=>i);
+  for(let i=n-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}
+  const splitIdx=Math.floor(n*(1-valSplit));
+  const trainIdx=idx.slice(0,splitIdx), valIdx=idx.slice(splitIdx);
+  log('info','Train: '+trainIdx.length+' | Val: '+valIdx.length+' | Batch: '+batchSize);
+
+  let cfg, workerCode;
+  if(trainMode==='classify'){
+    cfg={
+      epochs, batchSize,
+      lr:          +document.getElementById('cfgLR').value,
+      hiddenUnits: +document.getElementById('cfgDense').value,
+      hiddenLayers:+document.getElementById('cfgHiddenLayers').value,
+      denseAct:    document.getElementById('cfgDenseActivation').value,
+      dropout:     +document.getElementById('cfgDropout').value,
+      augFlipH:    document.getElementById('augFlipH').checked,
+      augFlipV:    document.getElementById('augFlipV').checked,
+      augNoise:    document.getElementById('augNoise').checked,
+    };
+    workerCode=WORKER_CODE;
+  } else {
+    // Generate mode — branch on currentGenModel
+    if(currentGenModel==='mlp'){
+      cfg={
+        epochs, batchSize,
+        lr:          +document.getElementById('cfgLR').value,
+        latentDim:   +document.getElementById('cfgLatent').value,
+        hiddenLayers:+document.getElementById('cfgGenHiddenLayers').value,
+        hiddenUnits: +document.getElementById('cfgGenHiddenUnits').value,
+        genAct:      document.getElementById('cfgGenAct').value,
+      };
+      workerCode=GEN_WORKER_CODE;
+    } else if(currentGenModel==='ddpm'){
+      cfg={
+        epochs, batchSize,
+        lr:          +document.getElementById('cfgLR').value,
+        T:           +document.getElementById('cfgDDPMT').value,
+        hiddenSize:  +document.getElementById('cfgDDPMH').value,
+        depth:       +document.getElementById('cfgDDPMD').value,
+        conditioning:document.getElementById('cfgDDPMCond').value,
+      };
+      workerCode=DDPM_WORKER_CODE;
+    } else if(currentGenModel==='gan'){
+      cfg={
+        epochs, batchSize,
+        lr:        +document.getElementById('cfgLR').value,
+        noiseDim:  +document.getElementById('cfgGANNoise').value,
+        genHidden: +document.getElementById('cfgGANGH').value,
+        genLayers: +document.getElementById('cfgGANGL').value,
+        discHidden:+document.getElementById('cfgGANDH').value,
+      };
+      workerCode=GAN_WORKER_CODE;
+    }
+  }
+
+  const blob=new Blob([workerCode],{type:'application/javascript'});
+  const url=URL.createObjectURL(blob);
+  trainWorker=new Worker(url);
+  URL.revokeObjectURL(url);
+
+  trainWorker.onmessage=function(e){
+    const msg=e.data;
+    if(msg.type==='log'){
+      log(msg.level,msg.text);
+    } else if(msg.type==='epochBegin'){
+      document.getElementById('stEpoch').textContent=(msg.ep+1)+'/'+msg.epochs;
+      document.getElementById('buildMsg').textContent='Epoch '+(msg.ep+1)+'/'+msg.epochs;
+    } else if(msg.type==='batch'){
+      const {ep,epochs:et,batch,totalBatches,bLoss,bAcc}=msg;
+      document.getElementById('stLoss').textContent=bLoss.toFixed(4);
+      document.getElementById('stAcc').textContent=(bAcc*100).toFixed(1)+'%';
+      document.getElementById('buildMsg').textContent='ep '+(ep+1)+' batch '+batch+'/'+totalBatches;
+      document.getElementById('trainProg').style.width=((ep/et+batch/(totalBatches*et))*100).toFixed(1)+'%';
+    } else if(msg.type==='epoch'){
+      const {ep,epochs:et,epochLoss,epochAcc,valLoss,valAcc,mode:m}=msg;
+      lossHistory.push(epochLoss);
+      document.getElementById('stLoss').textContent=epochLoss.toFixed(4);
+      document.getElementById('trainProg').style.width=(((ep+1)/et)*100)+'%';
+      document.getElementById('buildMsg').textContent='';
+      if(m==='classify'||!m){
+        accHistory.push(epochAcc); valAccHistory.push(valAcc);
+        document.getElementById('stAcc').textContent=(epochAcc*100).toFixed(1)+'%';
+        document.getElementById('stVAcc').textContent=(valAcc*100).toFixed(1)+'%';
+        log('epoch','Epoch '+(ep+1)+'/'+et+' — loss: '+epochLoss.toFixed(4)+' | acc: '+(epochAcc*100).toFixed(1)+'% | val_acc: '+(valAcc*100).toFixed(1)+'%');
+      } else {
+        valAccHistory.push(valLoss);
+        document.getElementById('stAcc').textContent='—';
+        document.getElementById('stVAcc').textContent=valLoss.toFixed(4);
+        log('epoch','Epoch '+(ep+1)+'/'+et+' — loss: '+epochLoss.toFixed(4)+' | val_loss: '+valLoss.toFixed(4));
+      }
+      drawChart();
+    } else if(msg.type==='done'){
+      if(msg.mode==='classify'&&msg.weights){ trainedNet=msg; }
+      else if(msg.mode==='ddpm'&&msg.net){ trainedDDPM=msg; populateGenClassSelect(); }
+      else if(msg.mode==='gan'&&msg.G){ trainedGAN=msg; populateGenClassSelect(); }
+      else if(msg.weights){ trainedGen=msg; populateGenClassSelect(); } // MLP gen
+      updateModelSummary();
+      log('info',msg.stopped?'Training stopped.':'Training complete!');
+      status(msg.stopped?'Stopped':'Done');
+      trainingDone();
+    } else if(msg.type==='error'){
+      log('err','Worker: '+msg.text);
+      trainingDone();
+    }
+  };
+  trainWorker.onerror=function(e){log('err','Worker crashed: '+e.message);console.error(e);trainingDone();};
+
+  trainWorker.postMessage({type:'train',images:dsImages,labels:dsLabels,dsH,dsW,dsChannels,dsClasses,trainIdx,valIdx,cfg});
+  log('info','Worker started — pure JS MLP, no GPU library');
+}
+
+function trainingDone(){
+  isTraining=false;
+  if(trainWorker){trainWorker.terminate();trainWorker=null;}
+  document.getElementById('btnTrain').disabled=false;
+  document.getElementById('btnStop').disabled=true;
+  document.getElementById('btnExport').disabled=false;
+  document.getElementById('buildMsg').textContent='';
+}
+
+function stopTraining(){
+  if(trainWorker) trainWorker.postMessage({type:'stop'});
+  log('warn','Stop signal sent…');
+}
+
+// ── Inference ─────────────────────────────────────────────────
+function netPredict(flatRGB){
+  if(!trainedNet||!trainedNet.weights) return null;
+  const {weights,dsChannels:ch,dsH,dsW}=trainedNet;
+  const inp=new Float32Array(dsH*dsW*ch);
+  for(let i=0;i<dsH*dsW;i++){
+    if(ch===3){inp[i*3]=flatRGB[i*3];inp[i*3+1]=flatRGB[i*3+1];inp[i*3+2]=flatRGB[i*3+2];}
+    else inp[i]=flatRGB[i*3]*0.299+flatRGB[i*3+1]*0.587+flatRGB[i*3+2]*0.114;
+  }
+  let x=inp;
+  for(const l of weights){
+    const z=new Float32Array(l.outSize);
+    for(let o=0;o<l.outSize;o++){let s=l.b[o];for(let i=0;i<l.inSize;i++) s+=x[i]*l.W[o*l.inSize+i];z[o]=s;}
+    if(l.act==='softmax'){const m=Math.max(...z),e=Array.from(z).map(v=>Math.exp(v-m)),s=e.reduce((a,b)=>a+b,0);x=new Float32Array(e.map(v=>v/s));}
+    else x=z.map(v=>{if(l.act==='relu')return v>0?v:0;if(l.act==='lrelu')return v>0?v:0.01*v;if(l.act==='sigmoid')return 1/(1+Math.exp(-v));if(l.act==='tanh')return Math.tanh(v);if(l.act==='elu')return v>=0?v:Math.exp(v)-1;return v;});
+  }
+  return Array.from(x);
+}
+
+
+// ════ Chart ════
+function drawChart(){
+  const canvas=document.getElementById('chartCanvas');
+  const ctx=canvas.getContext('2d');
+  const W=canvas.offsetWidth||canvas.width; canvas.width=W; canvas.height=160;
+  ctx.fillStyle='#101820'; ctx.fillRect(0,0,W,160);
+
+  const pad=10, cW=W-pad*2, cH=160-pad*2;
+  const draw=(arr,color,scale=1)=>{
+    if(!arr.length) return;
+    ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.beginPath();
+    arr.forEach((v,i)=>{
+      const x=pad+i/(arr.length-1||1)*cW;
+      const y=pad+cH-(v*scale/1)*cH;
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+  };
+
+  // Normalise loss to 0-1 range for display
+  const maxLoss=Math.max(...lossHistory,0.001);
+  draw(lossHistory.map(v=>v/maxLoss),'#ff3a6e');
+  draw(accHistory,'#00ffcc');
+  draw(valAccHistory,'#ffe566');
+
+  // Legend
+  ctx.font='9px Share Tech Mono';
+  [[' loss','#ff3a6e'],[' acc','#00ffcc'],[' val','#ffe566']].forEach(([t,c],i)=>{
+    ctx.fillStyle=c; ctx.fillRect(pad+i*55,pad+2,8,8);
+    ctx.fillText(t,pad+i*55+10,pad+10);
+  });
+}
+
+// ════ Draw Pad ════
+const padCanvas=document.getElementById('drawPad');
+const padCtx=padCanvas.getContext('2d');
+let padDrawing=false, padBgColor='#000000', padEraserOn=false;
+padCtx.fillStyle=padBgColor; padCtx.fillRect(0,0,padCanvas.width,padCanvas.height);
+
+padCanvas.addEventListener('mousedown',e=>{ padDrawing=true; padDraw(e); });
+padCanvas.addEventListener('mousemove',e=>{ if(padDrawing){ padDraw(e); predictPad(); }});
+padCanvas.addEventListener('mouseup',()=>padDrawing=false);
+padCanvas.addEventListener('mouseleave',()=>padDrawing=false);
+padCanvas.addEventListener('touchstart',e=>{ e.preventDefault(); padDrawing=true; padDraw(e.touches[0]); },{passive:false});
+padCanvas.addEventListener('touchmove',e=>{ e.preventDefault(); if(padDrawing){ padDraw(e.touches[0]); predictPad(); }},{passive:false});
+padCanvas.addEventListener('touchend',()=>padDrawing=false);
+
+function padDraw(e){
+  const r=padCanvas.getBoundingClientRect();
+  const x=Math.floor((e.clientX-r.left)/r.width*padCanvas.width);
+  const y=Math.floor((e.clientY-r.top)/r.height*padCanvas.height);
+  const sz=+document.getElementById('padBrush').value;
+  padCtx.fillStyle=padEraserOn?padBgColor:document.getElementById('padColor').value;
+  padCtx.fillRect(x-Math.floor(sz/2),y-Math.floor(sz/2),sz,sz);
+}
+function clearPad(){
+  padCtx.fillStyle=padBgColor;
+  padCtx.fillRect(0,0,padCanvas.width,padCanvas.height);
+  document.getElementById('predBars').innerHTML='';
+}
+function setPadBg(hex){
+  padBgColor=hex;
+  clearPad();
+}
+function toggleEraser(){
+  padEraserOn=!padEraserOn;
+  const btn=document.getElementById('btnEraser');
+  btn.textContent='Eraser: '+(padEraserOn?'On':'Off');
+  btn.style.borderColor=padEraserOn?'var(--a1)':'var(--border)';
+  btn.style.color=padEraserOn?'var(--a1)':'var(--text)';
+}
+
+
+// ════ Inference on draw pad ════
+function predictPad(){
+  if(!trainedNet||!dsClasses.length) return;
+  const imgData=padCtx.getImageData(0,0,padCanvas.width,padCanvas.height);
+  const raw=new Float32Array(dsW*dsH*3);
+  for(let y=0;y<dsH;y++) for(let x=0;x<dsW;x++){
+    const sx=Math.floor(x/dsW*padCanvas.width), sy=Math.floor(y/dsH*padCanvas.height);
+    const si=(sy*padCanvas.width+sx)*4;
+    const i=(y*dsW+x)*3;
+    raw[i]=imgData.data[si]/255; raw[i+1]=imgData.data[si+1]/255; raw[i+2]=imgData.data[si+2]/255;
+  }
+  const pred=netPredict(raw);
+  if(!pred) return;
+  const classes=trainedNet.dsClasses||dsClasses;
+  const pairs=pred.map((p,i)=>({cls:classes[i]||i,p})).sort((a,b)=>b.p-a.p);
+  const bars=document.getElementById('predBars'); bars.innerHTML='';
+  pairs.slice(0,Math.min(8,classes.length)).forEach((it,i)=>{
+    const row=document.createElement('div'); row.className='pred-row'+(i===0?' top':'');
+    row.innerHTML='<div class="pred-lbl">'+it.cls+'</div><div class="pred-bar-wrap"><div class="pred-bar-fill" style="width:'+(it.p*100).toFixed(1)+'%"></div></div><div class="pred-pct">'+(it.p*100).toFixed(1)+'%</div>';
+    bars.appendChild(row);
+  });
+}
+
+// ════ Generate tab UI ════
+function setGenTab(t){
+  document.querySelectorAll('.gtab[id^="gtab-"]').forEach(b=>b.classList.toggle('active',b.id==='gtab-'+t));
+  document.querySelectorAll('.gpanel').forEach(d=>d.style.display='none');
+  document.getElementById('gp-'+t).style.display='';
+}
+function setGenCfg(t){
+  currentGenModel=t;
+  document.querySelectorAll('.gtab[id^="gcfg-"]').forEach(b=>b.classList.toggle('active',b.id==='gcfg-'+t));
+  document.querySelectorAll('.gcfg').forEach(d=>d.style.display='none');
+  document.getElementById('gcfg-'+t+'-p').style.display='';
+}
+
+function populateGenClassSelect(){
+  const cls=dsClasses.length?dsClasses:[];
+  [['genClass',false],['ddpmClass',true],['ganClass',false]].forEach(([id,hasUnc])=>{
+    const sel=document.getElementById(id); if(!sel)return;
+    sel.innerHTML=hasUnc?'<option value="-1">— unconditional —</option>':'';
+    cls.forEach((c,i)=>{const o=document.createElement('option');o.value=i;o.textContent=c;sel.appendChild(o);});
+  });
+}
+
+// ── Shared canvas helper ──
+function appendPixelCanvas(pixels,w,h,ch,label){
+  const DISP=Math.max(64,Math.min(160,Math.floor(160/Math.max(w,h,1))*Math.max(w,h)));
+  const c=document.createElement('canvas'); c.width=w; c.height=h;
+  c.style.cssText='width:'+DISP+'px;height:'+DISP+'px;image-rendering:pixelated;border:1px solid var(--border);border-radius:2px;cursor:pointer';
+  c.title=(label||'gen')+' — click to download';
+  c.onclick=()=>{const a=document.createElement('a');a.href=c.toDataURL();a.download='gen_'+Date.now()+'.png';a.click();};
+  const cx=c.getContext('2d'); const id=cx.createImageData(w,h);
+  for(let j=0;j<w*h;j++){
+    if(ch===3){id.data[j*4]=Math.min(255,Math.max(0,pixels[j*3]*255|0));id.data[j*4+1]=Math.min(255,Math.max(0,pixels[j*3+1]*255|0));id.data[j*4+2]=Math.min(255,Math.max(0,pixels[j*3+2]*255|0));}
+    else{const v=Math.min(255,Math.max(0,pixels[j]*255|0));id.data[j*4]=v;id.data[j*4+1]=v;id.data[j*4+2]=v;}
+    id.data[j*4+3]=255;
+  }
+  cx.putImageData(id,0,0);
+  document.getElementById('genGrid').appendChild(c);
+}
+
+// ── MLP inference ──
+function generateImages(n){genMLP(n);}// compat
+
+function genMLP(n){
+  if(!trainedGen||!trainedGen.weights){document.getElementById('genMsgMLP').textContent='Train MLP generator first.';return;}
+  const{weights,dsChannels:ch,dsH:h,dsW:w,dsClasses:cls,nClasses,latentDim}=trainedGen;
+  const classIdx=+document.getElementById('genClass').value;
+  const noiseAmt=+document.getElementById('genNoise').value;
+  for(let g=0;g<n;g++){
+    const inp=new Float32Array(nClasses+latentDim);
+    inp[classIdx]=1;
+    for(let k=nClasses;k<inp.length;k++) inp[k]=(Math.random()*2-1)*noiseAmt;
+    let x=inp;
+    for(const l of weights){
+      const z=new Float32Array(l.outSize);
+      for(let o=0;o<l.outSize;o++){let s=l.b[o];for(let i=0;i<l.inSize;i++) s+=x[i]*l.W[o*l.inSize+i];z[o]=s;}
+      if(l.act==='sigmoid') x=z.map(v=>1/(1+Math.exp(-v)));
+      else if(l.act==='relu')  x=z.map(v=>v>0?v:0);
+      else if(l.act==='lrelu') x=z.map(v=>v>0?v:0.01*v);
+      else if(l.act==='tanh')  x=z.map(v=>(Math.tanh(v)+1)/2);
+      else if(l.act==='elu')   x=z.map(v=>v>=0?v:Math.exp(v)-1);
+      else x=z;
+    }
+    appendPixelCanvas(x,w,h,ch,cls[classIdx]);
+  }
+  document.getElementById('genMsgMLP').textContent='Generated '+n+' × '+(cls[classIdx]||classIdx);
+}
+
+// ── DDPM inference ──
+async function genDDPM(n){
+  if(!trainedDDPM||!trainedDDPM.net){document.getElementById('genMsgDDPM').textContent='Train DDPM first.';return;}
+  const{net:ns,schedule,T,dsChannels:ch,dsH:h,dsW:w,dsClasses:cls,conditioning}=trainedDDPM;
+  const imgSz=h*w*ch;
+  const tSteps=+document.getElementById('ddpmSteps').value;
+  const classIdxSel=+document.getElementById('ddpmClass').value;
+
+  document.getElementById('genMsgDDPM').textContent='Generating…';
+  document.getElementById('btnGenDDPM').disabled=true;
+  document.getElementById('ddpmGenProgWrap').style.display='block';
+
+  function randn(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+  function timeEmb(t,dim){const h=dim>>1,e=new Float32Array(dim);for(let i=0;i<h;i++){const f=Math.exp(-Math.log(10000)*i/h);e[i]=Math.sin(t*f);e[i+h]=Math.cos(t*f);}return e;}
+  function applyAct(z,fn){if(fn==='silu')return z*(1/(1+Math.exp(-z)));if(fn==='relu')return z>0?z:0;if(fn==='lrelu')return z>0?z:0.01*z;return z;}
+
+  function fwdL(l,x){
+    const z=new Float32Array(l.outSize);
+    for(let o=0;o<l.outSize;o++){let s=l.b[o];for(let i=0;i<l.inSize;i++)s+=x[i]*l.W[o*l.inSize+i];z[o]=s;}
+    if(l.act==='linear')return z;
+    return z.map(v=>applyAct(v,l.act));
+  }
+
+  // Deserialise net
+  function deser(s){return Object.assign({},s,{W:Float32Array.from(s.W),b:Float32Array.from(s.b)});}
+  const net={
+    enc:ns.enc.map(e=>({down:deser(e.down),skip:e.skip})),
+    bottleneck:deser(ns.bottleneck),
+    dec:ns.dec.map(deser),
+    out:deser(ns.out),
+    tDim:ns.tDim, nC:ns.nC
+  };
+
+  function unetFwd(xt,tNorm,ci){
+    const tE=timeEmb(tNorm,net.tDim);
+    const cond=net.nC>0?new Float32Array(net.nC):null;
+    if(cond&&ci>=0)cond[ci]=1;
+    let inp=new Float32Array(xt.length+tE.length+(cond?cond.length:0));
+    inp.set(xt,0);inp.set(tE,xt.length);if(cond)inp.set(cond,xt.length+tE.length);
+    const skips=[];let hh=inp;
+    for(const L of net.enc){hh=fwdL(L.down,hh);skips.push(hh);}
+    hh=fwdL(net.bottleneck,hh);
+    for(let i=0;i<net.dec.length;i++){
+      const sk=skips[net.enc.length-1-i];
+      const cat=new Float32Array(hh.length+sk.length);cat.set(hh,0);cat.set(sk,hh.length);
+      hh=fwdL(net.dec[i],cat);
+    }
+    return fwdL(net.out,hh);
+  }
+
+  const aBar=Float32Array.from(schedule.alphaBar);
+  const alpha=Float32Array.from(schedule.alpha);
+  const beta=Float32Array.from(schedule.beta);
+  const stride=Math.max(1,Math.floor(T/tSteps));
+  const steps=[];for(let t=T-1;t>=0;t-=stride)steps.push(t);
+
+  for(let g=0;g<n;g++){
+    let xt=new Float32Array(imgSz);for(let k=0;k<imgSz;k++)xt[k]=randn();
+    const ci=conditioning==='class'?classIdxSel:-1;
+    for(let si=0;si<steps.length;si++){
+      const t=steps[si];
+      document.getElementById('ddpmGenProg').style.width=((si/steps.length)*100)+'%';
+      if(si%8===0)await new Promise(r=>setTimeout(r,0));
+      const ep=unetFwd(xt,t/T,ci);
+      const sqA=Math.sqrt(alpha[t]),coeff=beta[t]/Math.sqrt(1-aBar[t]),sig=t>0?Math.sqrt(beta[t]):0;
+      const xt1=new Float32Array(imgSz);
+      for(let k=0;k<imgSz;k++)xt1[k]=(xt[k]-coeff*ep[k])/sqA+sig*randn();
+      xt=xt1;
+    }
+    const out=new Float32Array(imgSz);for(let k=0;k<imgSz;k++)out[k]=(xt[k]+1)*0.5;
+    appendPixelCanvas(out,w,h,ch,cls[ci>=0?ci:0]||'ddpm');
+  }
+  document.getElementById('ddpmGenProgWrap').style.display='none';
+  document.getElementById('btnGenDDPM').disabled=false;
+  document.getElementById('genMsgDDPM').textContent='Generated '+n;
+}
+
+// ── GAN inference ──
+function genGAN(n){
+  if(!trainedGAN||!trainedGAN.G){document.getElementById('genMsgGAN').textContent='Train GAN first.';return;}
+  const{G,dsChannels:ch,dsH:h,dsW:w,dsClasses:cls,noiseDim,nClasses}=trainedGAN;
+  const classIdx=+document.getElementById('ganClass').value;
+  const temp=+document.getElementById('ganTemp').value;
+  function randn(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+  for(let g=0;g<n;g++){
+    const inp=new Float32Array(noiseDim+nClasses);
+    for(let k=0;k<noiseDim;k++)inp[k]=randn()*temp;
+    inp[noiseDim+classIdx]=1;
+    let x=inp;
+    for(const l of G){
+      const z=new Float32Array(l.outSize);
+      for(let o=0;o<l.outSize;o++){let s=l.b[o];for(let i=0;i<l.inSize;i++)s+=x[i]*l.W[o*l.inSize+i];z[o]=s;}
+      if(l.act==='tanh')    x=z.map(v=>Math.tanh(v));
+      else if(l.act==='lrelu') x=z.map(v=>v>0?v:0.2*v);
+      else if(l.act==='relu')  x=z.map(v=>v>0?v:0);
+      else if(l.act==='sigmoid')x=z.map(v=>1/(1+Math.exp(-v)));
+      else x=z;
+    }
+    const pix=new Float32Array(h*w*ch);for(let k=0;k<pix.length;k++)pix[k]=(x[k]+1)*0.5;
+    appendPixelCanvas(pix,w,h,ch,cls[classIdx]);
+  }
+  document.getElementById('genMsgGAN').textContent='Generated '+n+' × '+(cls[classIdx]||classIdx);
+}
+
+// ════ Model summary ════
+function updateModelSummary(){
+  const el=document.getElementById('modelSummary');
+  let html='';
+  if(trainedNet&&trainedNet.weights){
+    const {weights,dsChannels:ch,dsH:h,dsW:w,dsClasses:cls}=trainedNet;
+    const params=weights.reduce((s,l)=>s+l.inSize*l.outSize+l.outSize,0);
+    html+='<b style="color:var(--a1)">Classifier</b><br>';
+    html+='Input: '+h+'×'+w+'×'+ch+' | Classes: '+(cls||dsClasses).length+' | Params: '+params.toLocaleString()+'<br>';
+    weights.forEach((l,i)=>{ html+='<span style="color:var(--muted)">L'+i+'</span> '+l.inSize+'→'+l.outSize+' ('+l.act+')<br>'; });
+    html+='<br>';
+  }
+  if(trainedGen&&trainedGen.weights){
+    const {weights,dsChannels:ch,dsH:h,dsW:w,nClasses,latentDim}=trainedGen;
+    const params=weights.reduce((s,l)=>s+l.inSize*l.outSize+l.outSize,0);
+    html+='<b style="color:var(--a4)">MLP Generator</b><br>';
+    html+='['+nClasses+' cls + '+latentDim+' noise] → '+h+'×'+w+'×'+ch+' | Params: '+params.toLocaleString()+'<br>';
+    weights.forEach((l,i)=>{ html+='<span style="color:var(--muted)">L'+i+'</span> '+l.inSize+'→'+l.outSize+' ('+l.act+')<br>'; });
+    html+='<br>';
+  }
+  if(trainedDDPM&&trainedDDPM.net){
+    const{net:ns,T,dsChannels:ch,dsH:h,dsW:w,conditioning}=trainedDDPM;
+    const ser=n=>n;const c=l=>l.inSize*l.outSize+l.outSize;
+    const p=ns.enc.reduce((s,e)=>s+c(e.down),0)+c(ns.bottleneck)+ns.dec.reduce((s,d)=>s+c(d),0)+c(ns.out);
+    html+='<b style="color:var(--a3)">DDPM</b><br>';
+    html+='T='+T+' '+h+'×'+w+'×'+ch+' cond='+conditioning+' | Params: '+p.toLocaleString()+'<br><br>';
+  }
+  if(trainedGAN&&trainedGAN.G){
+    const{G,dsChannels:ch,dsH:h,dsW:w,noiseDim,nClasses}=trainedGAN;
+    const p=G.reduce((s,l)=>s+l.inSize*l.outSize+l.outSize,0);
+    html+='<b style="color:var(--a2)">GAN Generator</b><br>';
+    html+='['+noiseDim+' noise + '+nClasses+' cls] → '+h+'×'+w+'×'+ch+' | G Params: '+p.toLocaleString()+'<br>';
+    G.forEach((l,i)=>{ html+='<span style="color:var(--muted)">L'+i+'</span> '+l.inSize+'→'+l.outSize+' ('+l.act+')<br>'; });
+  }
+  if(!html) html='<span style="color:var(--muted)">No model trained yet.</span>';
+  el.innerHTML=html;
+  document.getElementById('btnExport').disabled=!(trainedNet||trainedGen||trainedDDPM||trainedGAN);
+}
+
+// ════ Export / Import ════
+function exportModel(){
+  const data={classifier:trainedNet||null,generator:trainedGen||null,ddpm:trainedDDPM||null,gan:trainedGAN||null};
+  if(!data.classifier&&!data.generator&&!data.ddpm&&!data.gan){log('warn','No trained model');return;}
+  const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='pixeltrainer-model.json'; a.click();
+  log('info','Models exported');
+}
+
+function importModelFiles(input){
+  if(!input.files.length) return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=JSON.parse(e.target.result);
+      if(data.classifier||data.generator||data.ddpm||data.gan){
+        if(data.classifier) trainedNet=data.classifier;
+        if(data.generator){trainedGen=data.generator;}
+        if(data.ddpm){trainedDDPM=data.ddpm;}
+        if(data.gan){trainedGAN=data.gan;}
+      } else if(data.weights){
+        if(data.mode==='generate') trainedGen=data; else trainedNet=data;
+      }
+      if(trainedNet){dsClasses=trainedNet.dsClasses||dsClasses;dsChannels=trainedNet.dsChannels||dsChannels;dsH=trainedNet.dsH||dsH;dsW=trainedNet.dsW||dsW;}
+      populateGenClassSelect();
+      updateModelSummary();
+      log('info','Model imported');
+    }catch(err){log('err','Import error: '+err.message);}
+  };
+  reader.readAsText(input.files[0]);
+}
+
+
+function setColorMode(ch){
+  dsChannels=ch;
+  document.getElementById('modeRGB').classList.toggle('active',ch===3);
+  document.getElementById('modeGray').classList.toggle('active',ch===1);
+  log('info','Color mode: '+(ch===3?'RGB':'Grayscale'));
+}
+
+function setMode(m){
+  trainMode=m;
+  document.getElementById('modeClassify').classList.toggle('active',m==='classify');
+  document.getElementById('modeGenerate').classList.toggle('active',m==='generate');
+  document.getElementById('secClassify').style.display=m==='classify'?'':'none';
+  document.getElementById('secGenerate').style.display=m==='generate'?'':'none';
+  document.getElementById('modeDesc').textContent=m==='classify'
+    ?'Train an MLP to recognise which class a doodle belongs to.'
+    :'Train MLP / DDPM / GAN generator — pick model type in the panel above.';
+  if(m==='generate'){
+    populateGenClassSelect();
+    setGenCfg(currentGenModel);
+  }
+}
+
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    const names=['train','test','generate','model'];
+    t.classList.toggle('active',names[i]===name);
+  });
+  document.querySelectorAll('.tabcontent').forEach(c=>{
+    c.classList.toggle('active',c.id==='tab-'+name);
+  });
+}
+
+function showLoadProg(pct){ document.getElementById('loadProgWrap').style.display='block'; document.getElementById('loadProg').style.width=(pct*100)+'%'; }
+function hideLoadProg(){ document.getElementById('loadProgWrap').style.display='none'; }
+function setLoadMsg(msg,type=''){
+  const el=document.getElementById('loadMsg');
+  el.textContent=msg;
+  el.style.color=type==='err'?'var(--a2)':type==='warn'?'var(--a3)':'var(--muted)';
+}
+function status(msg){ document.getElementById('hdrStatus').textContent=msg; }
+</script>
+</body>
+</html>
