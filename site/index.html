@@ -497,6 +497,9 @@ let redoStack=[];
 let dataset=[];
 let dsFilter='all';
 
+let lastX = null;
+let lastY = null;
+  
 const canvas=document.getElementById('canvas');
 const ctx=canvas.getContext('2d');
 const overlay=document.getElementById('overlayCanvas');
@@ -504,6 +507,29 @@ const octx=overlay.getContext('2d');
 const selBox=document.getElementById('selBox');
 
 function status(msg){ document.getElementById('statusMsg').textContent=msg; }
+
+
+function drawInterpolated(x0, y0, x1, y1) {
+  if (x0 === null || y0 === null) {
+    paintAt(x1, y1);
+    lastX = x1;
+    lastY = y1;
+    return;
+  }
+
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const steps = Math.max(Math.abs(dx), Math.abs(dy));
+
+  for (let i = 0; i <= steps; i++) {
+    const x = Math.round(x0 + dx * (i / steps));
+    const y = Math.round(y0 + dy * (i / steps));
+    paintAt(x, y);
+  }
+
+  lastX = x1;
+  lastY = y1;
+}
 
 // ════ History ════
 function pushHistory(){
@@ -763,6 +789,8 @@ canvas.addEventListener('mousedown',e=>{
   if(e.button!==0)return;
   const{x,y}=getXY(e);
   isPainting=true;
+  lastX = x;
+  lastY = y;
 
   if(tool==='select'){
     deselect();
@@ -813,13 +841,16 @@ canvas.addEventListener('mousemove',e=>{
     updateSelBox();
   } else if(shapeStart&&isPainting&&(tool==='line'||tool==='rect'||tool==='ellipse')){
     drawShapePreview(shapeStart.x,shapeStart.y,x,y);
-  } else if(isPainting&&(tool==='draw'||tool==='erase'||tool==='spray')){
-    paintAt(x,y);
+  } else if(isPainting && (tool==='draw'||tool==='erase'||tool==='spray')){
+    drawInterpolated(lastX, lastY, x, y);
   }
 });
 
 canvas.addEventListener('mouseup',e=>{
   const{x,y}=getXY(e);
+  lastX = null;
+  lastY = null;
+  
   if(tool==='select'&&selDragging){
     selDragging=false;
     if(sel.w>0&&sel.h>0) status(`Selected ${sel.w}×${sel.h}`);
