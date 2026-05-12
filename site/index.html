@@ -863,9 +863,39 @@ canvas.addEventListener('mouseup',e=>{
   isPainting=false;
 });
 canvas.addEventListener('mouseleave',()=>{ isPainting=false; selDragging=false; });
-canvas.addEventListener('touchstart',e=>{ e.preventDefault(); isPainting=true; const{x,y}=getXY(e.touches[0]); paintAt(x,y); },{passive:false});
-canvas.addEventListener('touchmove', e=>{ e.preventDefault(); if(!isPainting||tool==='fill'||tool==='pick')return; const{x,y}=getXY(e.touches[0]); paintAt(x,y); },{passive:false});
-canvas.addEventListener('touchend', ()=>isPainting=false);
+canvas.addEventListener('touchstart', e=>{
+  e.preventDefault();
+
+  isPainting = true;
+
+  const {x,y} = getXY(e.touches[0]);
+
+  lastX = x;
+  lastY = y;
+
+  if(tool==='draw'||tool==='erase'||tool==='spray'){
+    pushHistory();
+  }
+
+  paintAt(x,y);
+},{passive:false});
+
+canvas.addEventListener('touchmove', e=>{
+  e.preventDefault();
+
+  if(!isPainting || tool==='fill' || tool==='pick') return;
+
+  const {x,y} = getXY(e.touches[0]);
+
+  drawInterpolated(lastX, lastY, x, y);
+},{passive:false});
+
+canvas.addEventListener('touchend', ()=>{
+  isPainting = false;
+  lastX = null;
+  lastY = null;
+});
+  
 document.addEventListener('mouseup',()=>{ isPainting=false; selDragging=false; moveDragging=false; });
 
 function showPos(x,y){ document.getElementById('posLbl').textContent=x+', '+y; }
